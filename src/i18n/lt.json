@@ -1,0 +1,36 @@
+{
+  "app": { "title": "SolarRadar" },
+
+  "menu": {
+    "dashboard": "Skydelis",
+    "sites": "Objektai",
+    "jobs": "Darbai",
+    "members": "Darbuotojai",
+    "timesheets": "Darbo laikas",
+    "reports": "Ataskaitos",
+    "settings": "Nustatymai",
+    "logout": "Atsijungti"
+  },
+
+  "common": {
+    "search": "Paieška",
+    "reset": "Atstatyti",
+    "cancel": "Atšaukti",
+    "save": "Išsaugoti",
+    "add": "Pridėti",
+    "close": "Uždaryti"
+  },
+
+  "pages": {
+    "dashboard": { "title": "Skydelis" },
+    "sites": { "title": "Objektai", "add": "Pridėti objektą" },
+    "jobs": { "title": "Darbai", "create": "Sukurti darbą" },
+    "members": { "title": "Darbuotojai", "add": "Pridėti darbuotoją" },
+    "settings": {
+      "title": "Nustatymai",
+      "languageTitle": "Kalba / Language",
+      "chooseLanguage": "Pasirinkti kalbą",
+      "accountTitle": "Paskyra"
+    }
+  }
+}

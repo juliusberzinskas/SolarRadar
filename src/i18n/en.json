@@ -1,0 +1,36 @@
+{
+  "app": { "title": "SolarRadar" },
+
+  "menu": {
+    "dashboard": "Dashboard",
+    "sites": "Sites",
+    "jobs": "Jobs",
+    "members": "Members",
+    "timesheets": "Timesheets",
+    "reports": "Reports",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+
+  "common": {
+    "search": "Search",
+    "reset": "Reset",
+    "cancel": "Cancel",
+    "save": "Save",
+    "add": "Add",
+    "close": "Close"
+  },
+
+  "pages": {
+    "dashboard": { "title": "Dashboard" },
+    "sites": { "title": "Sites", "add": "Add site" },
+    "jobs": { "title": "Jobs", "create": "Create job" },
+    "members": { "title": "Members", "add": "Add member" },
+    "settings": {
+      "title": "Settings",
+      "languageTitle": "Language",
+      "chooseLanguage": "Choose language",
+      "accountTitle": "Account"
+    }
+  }
+}
