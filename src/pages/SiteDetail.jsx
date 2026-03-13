@@ -64,16 +64,12 @@ function InfoTab({ site, siteId }) {
 
   useEffect(() => {
     if (!site) return;
-    const lat = site.location?.lat ?? site.lat ?? "";
-    const lng = site.location?.lng ?? site.lng ?? "";
     setForm({
       name: site.name ?? "",
       address: site.address ?? "",
       region: site.region ?? "Kaunas",
       status: site.status ?? "active",
       capacityKw: site.capacityKw != null ? String(site.capacityKw) : "",
-      lat: lat != null ? String(lat) : "",
-      lng: lng != null ? String(lng) : "",
     });
   }, [site]);
 
@@ -90,10 +86,6 @@ function InfoTab({ site, siteId }) {
         region: form.region,
         status: form.status,
         capacityKw: form.capacityKw !== "" ? parseFloat(form.capacityKw) : null,
-        location: {
-          lat: form.lat !== "" ? parseFloat(form.lat) : null,
-          lng: form.lng !== "" ? parseFloat(form.lng) : null,
-        },
         updatedAt: new Date().toISOString().slice(0, 10),
       });
       setSaved(true);
@@ -142,11 +134,6 @@ function InfoTab({ site, siteId }) {
           {...f("capacityKw")}
         />
 
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <TextField label={t("pages.siteDetail.info.lat")} type="number" inputProps={{ step: "0.0001" }} fullWidth {...f("lat")} />
-          <TextField label={t("pages.siteDetail.info.lng")} type="number" inputProps={{ step: "0.0001" }} fullWidth {...f("lng")} />
-        </Stack>
-
         {saveError && <Alert severity="error">{saveError}</Alert>}
         {saved && <Alert severity="success">{t("common.savedOk")}</Alert>}
 
@@ -167,11 +154,9 @@ function InfoTab({ site, siteId }) {
 
 function MapTab({ site }) {
   const { t } = useTranslation();
-  const lat = site?.location?.lat ?? site?.lat;
-  const lng = site?.location?.lng ?? site?.lng;
-  const hasCoords = lat != null && lng != null;
+  const address = site?.address;
 
-  if (!hasCoords) {
+  if (!address) {
     return (
       <Paper variant="outlined" sx={{ p: 4, borderRadius: 2, textAlign: "center" }}>
         <Typography color="text.secondary">
@@ -185,7 +170,7 @@ function MapTab({ site }) {
     <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
       <iframe
         title={t("pages.siteDetail.map.iframeTitle")}
-        src={`https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`}
+        src={`https://maps.google.com/maps?q=${encodeURIComponent(address)}&z=15&output=embed`}
         width="100%"
         height="480"
         style={{ border: 0, display: "block" }}

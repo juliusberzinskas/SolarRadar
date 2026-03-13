@@ -38,8 +38,6 @@ const emptyForm = () => ({
   address: "",
   region: "Kaunas",
   status: "active",
-  lat: "",
-  lng: "",
   capacityKw: "",
 });
 
@@ -140,10 +138,6 @@ export default function Sites() {
     region: f.region,
     status: f.status,
     capacityKw: f.capacityKw !== "" ? parseFloat(f.capacityKw) : null,
-    location: {
-      lat: f.lat !== "" ? parseFloat(f.lat) : null,
-      lng: f.lng !== "" ? parseFloat(f.lng) : null,
-    },
     updatedAt: new Date().toISOString().slice(0, 10),
   });
 
@@ -206,24 +200,6 @@ export default function Sites() {
         type="number"
         inputProps={{ step: "0.1" }}
       />
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-        <TextField
-          label={t("pages.sites.form.lat")}
-          value={form.lat}
-          onChange={(e) => setForm((p) => ({ ...p, lat: e.target.value }))}
-          fullWidth
-          type="number"
-          inputProps={{ step: "0.0001" }}
-        />
-        <TextField
-          label={t("pages.sites.form.lng")}
-          value={form.lng}
-          onChange={(e) => setForm((p) => ({ ...p, lng: e.target.value }))}
-          fullWidth
-          type="number"
-          inputProps={{ step: "0.0001" }}
-        />
-      </Stack>
     </Stack>
   );
 

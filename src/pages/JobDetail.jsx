@@ -5,6 +5,7 @@ import {
   doc,
   onSnapshot,
   updateDoc,
+  deleteDoc,
   collection,
   query,
   where,
@@ -24,6 +25,7 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
   CircularProgress,
   Dialog,
@@ -32,6 +34,8 @@ import {
   DialogTitle,
   Divider,
   FormControl,
+  FormControlLabel,
+  FormGroup,
   IconButton,
   InputLabel,
   LinearProgress,
@@ -43,6 +47,7 @@ import {
   Stack,
   Tab,
   Tabs,
+  TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -50,12 +55,42 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
+import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
 import ArchiveIcon from "@mui/icons-material/Archive";
 
 dayjs.extend(relativeTime);
+
+const JOB_TYPE_KEYS = ["inverter_fault", "communication", "string_issue", "inspection", "maintenance"];
+const EXPERTISE_KEYS = ["electrician", "inv_elect", "mount_spec", "panel_spec"];
+
+function ExpertiseCheckboxes({ value, onChange }) {
+  const { t } = useTranslation();
+  return (
+    <FormGroup row>
+      {EXPERTISE_KEYS.map((key) => (
+        <FormControlLabel
+          key={key}
+          control={
+            <Checkbox
+              size="small"
+              checked={(value || []).includes(key)}
+              onChange={(e) => {
+                const next = e.target.checked
+                  ? [...(value || []), key]
+                  : (value || []).filter((k) => k !== key);
+                onChange(next);
+              }}
+            />
+          }
+          label={t(`expertise.${key}`)}
+        />
+      ))}
+    </FormGroup>
+  );
+}
 
 function StatusChip({ value }) {
   const { t } = useTranslation();
@@ -84,7 +119,13 @@ function TabPanel({ value, index, children }) {
 function InfoTab({ job, jobId }) {
   const { t } = useTranslation();
   const [technicians, setTechnicians] = useState([]);
-  const [form, setForm] = useState({ status: job.status, assignedTo: job.assignedTo ?? "" });
+  const [form, setForm] = useState({
+    status:            job.status,
+    assignedTo:        job.assignedTo ?? "",
+    type:              job.type || "inverter_fault",
+    requiredExpertise: job.requiredExpertise || [],
+    description:       job.description || "",
+  });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -104,10 +145,13 @@ function InfoTab({ job, jobId }) {
     try {
       const tech = technicians.find((tc) => tc.uid === form.assignedTo);
       await updateDoc(doc(db, "jobs", jobId), {
-        status:       form.status,
-        assignedTo:   form.assignedTo || null,
-        assignedName: tech?.displayName || null,
-        updatedAt:    new Date().toISOString().slice(0, 10),
+        status:            form.status,
+        assignedTo:        form.assignedTo || null,
+        assignedName:      tech?.displayName || null,
+        type:              form.type,
+        requiredExpertise: form.requiredExpertise,
+        description:       form.description,
+        updatedAt:         new Date().toISOString().slice(0, 10),
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -199,6 +243,34 @@ function InfoTab({ job, jobId }) {
                 ))}
               </Select>
             </FormControl>
+
+            <FormControl fullWidth>
+              <InputLabel>{t("pages.jobDetail.update.type")}</InputLabel>
+              <Select label={t("pages.jobDetail.update.type")} value={form.type} onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))}>
+                {JOB_TYPE_KEYS.map((k) => (
+                  <MenuItem key={k} value={k}>{t(`jobType.${k}`)}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                {t("pages.jobDetail.update.reqExpertise")}
+              </Typography>
+              <ExpertiseCheckboxes
+                value={form.requiredExpertise}
+                onChange={(next) => setForm((p) => ({ ...p, requiredExpertise: next }))}
+              />
+            </Box>
+
+            <TextField
+              label={t("pages.jobDetail.update.description")}
+              value={form.description}
+              onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+              multiline
+              minRows={3}
+              fullWidth
+            />
 
             {saveError && <Alert severity="error">{saveError}</Alert>}
             {saved && <Alert severity="success">{t("common.savedOk")}</Alert>}
@@ -395,6 +467,8 @@ export default function JobDetail() {
   const [tab, setTab] = useState(0);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -410,6 +484,18 @@ export default function JobDetail() {
     );
     return () => unsub();
   }, [jobId]);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteDoc(doc(db, "jobs", jobId));
+      navigate("/jobs");
+    } catch (e) {
+      console.error("Delete error:", e);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleArchive = async () => {
     setArchiving(true);
@@ -476,6 +562,16 @@ export default function JobDetail() {
 
         <StatusChip value={job.status} />
 
+        <Button
+          variant="outlined"
+          color="error"
+          startIcon={<DeleteForeverIcon />}
+          size="small"
+          onClick={() => setDeleteOpen(true)}
+        >
+          {t("common.delete")}
+        </Button>
+
         {job.archived ? (
           <Tooltip title={archiveExpiryLabel}>
             <Chip
@@ -517,6 +613,28 @@ export default function JobDetail() {
           </TabPanel>
         </Box>
       </Paper>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ color: "error.main" }}>{t("pages.jobDetail.delete.confirmTitle")}</DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 1 }}>
+            {t("pages.jobDetail.delete.confirmDesc")}
+          </Alert>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setDeleteOpen(false)}>{t("common.cancel")}</Button>
+          <Button
+            variant="contained"
+            color="error"
+            startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : <DeleteForeverIcon />}
+            onClick={handleDelete}
+            disabled={deleting}
+          >
+            {t("pages.jobDetail.delete.proceed")}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Archive confirmation dialog */}
       <Dialog open={archiveOpen} onClose={() => setArchiveOpen(false)} maxWidth="xs" fullWidth>

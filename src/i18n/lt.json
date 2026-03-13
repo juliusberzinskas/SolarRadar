@@ -236,7 +236,15 @@
         "sectionTitle": "Atnaujinti darbą",
         "status": "Statusas",
         "assignedTech": "Atsakingas technikas",
-        "unassigned": "— Nepriskirtas —"
+        "unassigned": "— Nepriskirtas —",
+        "type": "Darbo tipas",
+        "reqExpertise": "Reikalinga kompetencija",
+        "description": "Aprašymas"
+      },
+      "delete": {
+        "confirmTitle": "Ištrinti darbą?",
+        "confirmDesc": "Šis veiksmas negrįžtamas. Darbas bus pašalintas iš karto.",
+        "proceed": "Taip, ištrinti"
       },
       "attachments": {
         "upload": "Įkelti failus",

@@ -236,7 +236,15 @@
         "sectionTitle": "Update job",
         "status": "Status",
         "assignedTech": "Assigned technician",
-        "unassigned": "— Unassigned —"
+        "unassigned": "— Unassigned —",
+        "type": "Job type",
+        "reqExpertise": "Required expertise",
+        "description": "Description"
+      },
+      "delete": {
+        "confirmTitle": "Delete job?",
+        "confirmDesc": "This action is permanent and cannot be undone. The job will be removed immediately.",
+        "proceed": "Yes, delete"
       },
       "attachments": {
         "upload": "Upload files",
