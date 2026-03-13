@@ -19,12 +19,15 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   FormControl,
+  FormControlLabel,
+  FormGroup,
   IconButton,
   InputLabel,
   MenuItem,
@@ -51,6 +54,9 @@ import PageHeader from "../components/PageHeader";
 import FilterBar from "../components/FilterBar";
 import { useAuth } from "../contexts/AuthContext";
 
+// ─── Expertise config ─────────────────────────────────────────────────────────
+export const EXPERTISE_KEYS = ["electrician", "inv_elect", "mount_spec", "panel_spec"];
+
 function yearsInCompany(hiredAt) {
   if (!hiredAt) return null;
   const years = dayjs().diff(dayjs(hiredAt), "year");
@@ -69,12 +75,61 @@ function ActiveChip({ value }) {
   );
 }
 
+function ExpertiseChips({ value }) {
+  const { t } = useTranslation();
+  const list = value || [];
+  if (list.length === 0) return <Typography variant="body2" color="text.secondary">—</Typography>;
+  return (
+    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.4, alignItems: "center", py: 0.5 }}>
+      {list.map((key) => (
+        <Chip
+          key={key}
+          size="small"
+          label={t(`expertise.short.${key}`, key)}
+          variant="outlined"
+          color="primary"
+          sx={{ fontSize: "0.7rem", height: 20 }}
+        />
+      ))}
+    </Box>
+  );
+}
+
+function ExpertiseCheckboxes({ value, onChange }) {
+  const { t } = useTranslation();
+  return (
+    <FormGroup>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+        {t("pages.members.form.expertise")}
+      </Typography>
+      {EXPERTISE_KEYS.map((key) => (
+        <FormControlLabel
+          key={key}
+          control={
+            <Checkbox
+              size="small"
+              checked={(value || []).includes(key)}
+              onChange={(e) => {
+                const next = e.target.checked
+                  ? [...(value || []), key]
+                  : (value || []).filter((k) => k !== key);
+                onChange(next);
+              }}
+            />
+          }
+          label={t(`expertise.${key}`)}
+        />
+      ))}
+    </FormGroup>
+  );
+}
+
 const emptyTechForm = () => ({
   displayName: "",
   email: "",
   active: true,
   hiredAt: dayjs(),
-  level: 1,
+  expertise: [],
 });
 
 const emptyAdminForm = () => ({
@@ -83,7 +138,7 @@ const emptyAdminForm = () => ({
   active: true,
 });
 
-// Firebase Auth REST API error codes → Lithuanian messages
+// Firebase Auth REST API error codes
 const AUTH_ERRORS = {
   EMAIL_EXISTS: "Šis el. paštas jau naudojamas.",
   INVALID_EMAIL: "Neteisingas el. pašto formatas.",
@@ -101,6 +156,8 @@ async function getNextMemberId() {
   const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
   return `SR${String(next).padStart(2, "0")}`;
 }
+
+// ─── Technicians tab ──────────────────────────────────────────────────────────
 
 function TechniciansTab() {
   const { t } = useTranslation();
@@ -155,24 +212,24 @@ function TechniciansTab() {
   const columns = useMemo(
     () => [
       { field: "memberId", headerName: t("pages.members.col.id"), width: 90, renderCell: (p) => <b>{p.value ?? "—"}</b> },
-      { field: "displayName", headerName: t("pages.members.col.name"), flex: 1, minWidth: 220 },
-      { field: "email", headerName: t("pages.members.col.email"), width: 220 },
+      { field: "displayName", headerName: t("pages.members.col.name"), width: 200 },
+      { field: "email", headerName: t("pages.members.col.email"), width: 200 },
       {
-        field: "level",
-        headerName: t("pages.members.col.level"),
-        width: 90,
-        renderCell: (p) => (
-          <Chip size="small" label={`L${p.value ?? "?"}`} variant="outlined" sx={{ fontWeight: 700 }} />
-        ),
+        field: "expertise",
+        headerName: t("pages.members.col.expertise"),
+        flex: 1,
+        minWidth: 260,
+        sortable: false,
+        renderCell: (p) => <ExpertiseChips value={p.value} />,
       },
       {
         field: "active",
         headerName: t("pages.members.col.status"),
-        width: 130,
+        width: 120,
         renderCell: (p) => <ActiveChip value={p.value} />,
         sortable: false,
       },
-      { field: "hiredAt", headerName: t("pages.members.col.hiredAt"), width: 140 },
+      { field: "hiredAt", headerName: t("pages.members.col.hiredAt"), width: 120 },
       {
         field: "years",
         headerName: t("pages.members.col.tenure"),
@@ -193,7 +250,7 @@ function TechniciansTab() {
       {
         field: "actions",
         headerName: "",
-        width: 70,
+        width: 60,
         sortable: false,
         filterable: false,
         renderCell: (p) => (
@@ -206,7 +263,7 @@ function TechniciansTab() {
                 email: p.row.email ?? "",
                 active: !!p.row.active,
                 hiredAt: p.row.hiredAt ? dayjs(p.row.hiredAt) : dayjs(),
-                level: p.row.level ?? 1,
+                expertise: p.row.expertise || [],
               });
               setSaveError("");
               setOpenEdit(true);
@@ -244,14 +301,14 @@ function TechniciansTab() {
 
       const memberId = await getNextMemberId();
       await setDoc(doc(db, "users", data.localId), {
-        role: "technician",
+        role:        "technician",
         memberId,
         displayName: form.displayName,
-        email: form.email,
-        active: form.active,
-        hiredAt: form.hiredAt ? form.hiredAt.format("YYYY-MM-DD") : null,
-        level: form.level,
-        createdAt: serverTimestamp(),
+        email:       form.email,
+        active:      form.active,
+        hiredAt:     form.hiredAt ? form.hiredAt.format("YYYY-MM-DD") : null,
+        expertise:   form.expertise,
+        createdAt:   serverTimestamp(),
       });
 
       setOpenCreate(false);
@@ -268,10 +325,10 @@ function TechniciansTab() {
     try {
       await updateDoc(doc(db, "users", editingRow.id), {
         displayName: form.displayName,
-        email: form.email,
-        active: form.active,
-        hiredAt: form.hiredAt ? form.hiredAt.format("YYYY-MM-DD") : null,
-        level: form.level,
+        email:       form.email,
+        active:      form.active,
+        hiredAt:     form.hiredAt ? form.hiredAt.format("YYYY-MM-DD") : null,
+        expertise:   form.expertise,
       });
       setOpenEdit(false);
     } catch (e) {
@@ -315,13 +372,15 @@ function TechniciansTab() {
         </FilterBar>
 
         <Paper sx={{ borderRadius: 2 }} variant="outlined">
-          <Box sx={{ height: 520, width: "100%" }}>
+          <Box sx={{ width: "100%" }}>
             <DataGrid
               rows={rows}
               columns={columns}
               loading={loadingData}
               pageSizeOptions={[5, 10, 25]}
               initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
+              getRowHeight={() => "auto"}
+              sx={{ "& .MuiDataGrid-cell": { alignItems: "center", display: "flex" } }}
               disableRowSelectionOnClick
             />
           </Box>
@@ -333,24 +392,42 @@ function TechniciansTab() {
         <DialogTitle>{t("pages.members.dialog.createTech")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField label={t("pages.members.form.name")} value={form.displayName} onChange={(e) => setForm((p) => ({ ...p, displayName: e.target.value }))} fullWidth />
-            <TextField label={t("pages.members.form.email")} value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} fullWidth />
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-              <DatePicker label={t("pages.members.form.hiredAt")} value={form.hiredAt} onChange={(v) => setForm((p) => ({ ...p, hiredAt: v }))} slotProps={{ textField: { fullWidth: true } }} />
-              <FormControl fullWidth>
-                <InputLabel>{t("pages.members.form.level")}</InputLabel>
-                <Select label={t("pages.members.form.level")} value={form.level} onChange={(e) => setForm((p) => ({ ...p, level: Number(e.target.value) }))}>
-                  {[1, 2, 3, 4, 5].map((l) => <MenuItem key={l} value={l}>L{l}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </Stack>
+            <TextField
+              label={t("pages.members.form.name")}
+              value={form.displayName}
+              onChange={(e) => setForm((p) => ({ ...p, displayName: e.target.value }))}
+              fullWidth
+            />
+            <TextField
+              label={t("pages.members.form.email")}
+              value={form.email}
+              onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+              fullWidth
+            />
+            <DatePicker
+              label={t("pages.members.form.hiredAt")}
+              value={form.hiredAt}
+              onChange={(v) => setForm((p) => ({ ...p, hiredAt: v }))}
+              slotProps={{ textField: { fullWidth: true } }}
+            />
+
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+              <ExpertiseCheckboxes
+                value={form.expertise}
+                onChange={(next) => setForm((p) => ({ ...p, expertise: next }))}
+              />
+            </Paper>
+
             <Stack direction="row" alignItems="center" justifyContent="space-between">
               <Typography>{t("pages.members.col.status")}</Typography>
               <Stack direction="row" spacing={1} alignItems="center">
-                <Typography variant="body2" color="text.secondary">{form.active ? t("pages.members.form.active") : t("pages.members.form.inactive")}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {form.active ? t("pages.members.form.active") : t("pages.members.form.inactive")}
+                </Typography>
                 <Switch checked={form.active} onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))} />
               </Stack>
             </Stack>
+
             {saveError && <Alert severity="error">{saveError}</Alert>}
           </Stack>
         </DialogContent>
@@ -367,25 +444,45 @@ function TechniciansTab() {
         <DialogTitle>{t("pages.members.dialog.editTech")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            <Typography variant="body2" color="text.secondary">{t("pages.members.dialog.idLabel")}<b>{editingRow?.memberId ?? editingRow?.id}</b></Typography>
-            <TextField label={t("pages.members.form.name")} value={form.displayName} onChange={(e) => setForm((p) => ({ ...p, displayName: e.target.value }))} fullWidth />
-            <TextField label={t("pages.members.form.email")} value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} fullWidth />
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-              <DatePicker label={t("pages.members.form.hiredAt")} value={form.hiredAt} onChange={(v) => setForm((p) => ({ ...p, hiredAt: v }))} slotProps={{ textField: { fullWidth: true } }} />
-              <FormControl fullWidth>
-                <InputLabel>{t("pages.members.form.level")}</InputLabel>
-                <Select label={t("pages.members.form.level")} value={form.level} onChange={(e) => setForm((p) => ({ ...p, level: Number(e.target.value) }))}>
-                  {[1, 2, 3, 4, 5].map((l) => <MenuItem key={l} value={l}>L{l}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </Stack>
+            <Typography variant="body2" color="text.secondary">
+              {t("pages.members.dialog.idLabel")}<b>{editingRow?.memberId ?? editingRow?.id}</b>
+            </Typography>
+            <TextField
+              label={t("pages.members.form.name")}
+              value={form.displayName}
+              onChange={(e) => setForm((p) => ({ ...p, displayName: e.target.value }))}
+              fullWidth
+            />
+            <TextField
+              label={t("pages.members.form.email")}
+              value={form.email}
+              onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+              fullWidth
+            />
+            <DatePicker
+              label={t("pages.members.form.hiredAt")}
+              value={form.hiredAt}
+              onChange={(v) => setForm((p) => ({ ...p, hiredAt: v }))}
+              slotProps={{ textField: { fullWidth: true } }}
+            />
+
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+              <ExpertiseCheckboxes
+                value={form.expertise}
+                onChange={(next) => setForm((p) => ({ ...p, expertise: next }))}
+              />
+            </Paper>
+
             <Stack direction="row" alignItems="center" justifyContent="space-between">
               <Typography>{t("pages.members.col.status")}</Typography>
               <Stack direction="row" spacing={1} alignItems="center">
-                <Typography variant="body2" color="text.secondary">{form.active ? t("pages.members.form.active") : t("pages.members.form.inactive")}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {form.active ? t("pages.members.form.active") : t("pages.members.form.inactive")}
+                </Typography>
                 <Switch checked={form.active} onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))} />
               </Stack>
             </Stack>
+
             {saveError && <Alert severity="error">{saveError}</Alert>}
           </Stack>
         </DialogContent>
@@ -456,11 +553,11 @@ function AdminsTab() {
     setSaveError("");
     try {
       await addDoc(collection(db, "users"), {
-        role: "admin",
+        role:        "admin",
         displayName: form.displayName,
-        email: form.email,
-        active: form.active,
-        createdAt: serverTimestamp(),
+        email:       form.email,
+        active:      form.active,
+        createdAt:   serverTimestamp(),
       });
       setOpenCreate(false);
     } catch (e) {
@@ -503,12 +600,24 @@ function AdminsTab() {
               Naujas vartotojas gaus rolę „Administratorius". Prisijungimo paskyra turi būti
               sukurta atskirai Firebase Authentication konsolėje.
             </Alert>
-            <TextField label={t("pages.members.form.name")} value={form.displayName} onChange={(e) => setForm((p) => ({ ...p, displayName: e.target.value }))} fullWidth />
-            <TextField label={t("pages.members.form.email")} value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} fullWidth />
+            <TextField
+              label={t("pages.members.form.name")}
+              value={form.displayName}
+              onChange={(e) => setForm((p) => ({ ...p, displayName: e.target.value }))}
+              fullWidth
+            />
+            <TextField
+              label={t("pages.members.form.email")}
+              value={form.email}
+              onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+              fullWidth
+            />
             <Stack direction="row" alignItems="center" justifyContent="space-between">
               <Typography>{t("pages.members.col.status")}</Typography>
               <Stack direction="row" spacing={1} alignItems="center">
-                <Typography variant="body2" color="text.secondary">{form.active ? t("pages.members.form.active") : t("pages.members.form.inactive")}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {form.active ? t("pages.members.form.active") : t("pages.members.form.inactive")}
+                </Typography>
                 <Switch checked={form.active} onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))} />
               </Stack>
             </Stack>

@@ -1,7 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { doc, onSnapshot, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
+import {
+  doc,
+  onSnapshot,
+  updateDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  serverTimestamp,
+} from "firebase/firestore";
 import {
   ref,
   listAll,
@@ -17,6 +26,10 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   FormControl,
   IconButton,
@@ -40,6 +53,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DownloadIcon from "@mui/icons-material/Download";
+import ArchiveIcon from "@mui/icons-material/Archive";
 
 dayjs.extend(relativeTime);
 
@@ -49,17 +63,6 @@ function StatusChip({ value }) {
     open:        { key: "status.open",        color: "warning" },
     in_progress: { key: "status.in_progress", color: "info"    },
     resolved:    { key: "status.resolved",    color: "success" },
-  };
-  const m = map[value] || { key: value, color: "default" };
-  return <Chip size="small" label={t(m.key, m.key)} color={m.color} variant="outlined" />;
-}
-
-function PriorityChip({ value }) {
-  const { t } = useTranslation();
-  const map = {
-    low:    { key: "priority.low",    color: "default" },
-    medium: { key: "priority.medium", color: "info"    },
-    high:   { key: "priority.high",   color: "error"   },
   };
   const m = map[value] || { key: value, color: "default" };
   return <Chip size="small" label={t(m.key, m.key)} color={m.color} variant="outlined" />;
@@ -120,10 +123,12 @@ function InfoTab({ job, jobId }) {
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
         <Typography fontWeight={700} sx={{ mb: 2 }}>{t("pages.jobDetail.info.sectionTitle")}</Typography>
         <Stack spacing={1.2}>
-          <Stack direction="row" spacing={1}>
-            <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{t("pages.jobDetail.info.name")}</Typography>
-            <Typography variant="body2" fontWeight={600}>{job.title}</Typography>
-          </Stack>
+          {job.title && (
+            <Stack direction="row" spacing={1}>
+              <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{t("pages.jobDetail.info.name")}</Typography>
+              <Typography variant="body2" fontWeight={600}>{job.title}</Typography>
+            </Stack>
+          )}
           <Stack direction="row" spacing={1}>
             <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{t("pages.jobDetail.info.site")}</Typography>
             <Typography variant="body2">{job.siteName || "—"}</Typography>
@@ -132,14 +137,24 @@ function InfoTab({ job, jobId }) {
             <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{t("pages.jobDetail.info.type")}</Typography>
             <Typography variant="body2">{t(`jobType.${job.type}`, job.type || "—")}</Typography>
           </Stack>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{t("pages.jobDetail.info.priority")}</Typography>
-            <PriorityChip value={job.priority} />
-          </Stack>
-          {job.requiredLevel && (
+          {(job.requiredExpertise?.length > 0 || job.requiredLevel) && (
+            <Stack direction="row" spacing={1} alignItems="flex-start">
+              <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{t("pages.jobDetail.info.reqExpertise")}</Typography>
+              {job.requiredExpertise?.length > 0 ? (
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                  {job.requiredExpertise.map((key) => (
+                    <Chip key={key} size="small" label={t(`expertise.short.${key}`, key)} variant="outlined" color="primary" sx={{ fontSize: "0.7rem", height: 20 }} />
+                  ))}
+                </Box>
+              ) : (
+                <Typography variant="body2">L{job.requiredLevel}</Typography>
+              )}
+            </Stack>
+          )}
+          {job.deadline && (
             <Stack direction="row" spacing={1}>
-              <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{t("pages.jobDetail.info.reqLevel")}</Typography>
-              <Typography variant="body2">L{job.requiredLevel}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{t("pages.jobDetail.info.deadline")}</Typography>
+              <Typography variant="body2">{job.deadline}</Typography>
             </Stack>
           )}
           <Stack direction="row" spacing={1}>
@@ -162,43 +177,45 @@ function InfoTab({ job, jobId }) {
         </Stack>
       </Paper>
 
-      <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
-        <Typography fontWeight={700} sx={{ mb: 2 }}>{t("pages.jobDetail.update.sectionTitle")}</Typography>
-        <Stack spacing={2}>
-          <FormControl fullWidth>
-            <InputLabel>{t("pages.jobDetail.update.status")}</InputLabel>
-            <Select label={t("pages.jobDetail.update.status")} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
-              <MenuItem value="open">{t("status.open")}</MenuItem>
-              <MenuItem value="in_progress">{t("status.in_progress")}</MenuItem>
-              <MenuItem value="resolved">{t("status.resolved")}</MenuItem>
-            </Select>
-          </FormControl>
+      {!job.archived && (
+        <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+          <Typography fontWeight={700} sx={{ mb: 2 }}>{t("pages.jobDetail.update.sectionTitle")}</Typography>
+          <Stack spacing={2}>
+            <FormControl fullWidth>
+              <InputLabel>{t("pages.jobDetail.update.status")}</InputLabel>
+              <Select label={t("pages.jobDetail.update.status")} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
+                <MenuItem value="open">{t("status.open")}</MenuItem>
+                <MenuItem value="in_progress">{t("status.in_progress")}</MenuItem>
+                <MenuItem value="resolved">{t("status.resolved")}</MenuItem>
+              </Select>
+            </FormControl>
 
-          <FormControl fullWidth>
-            <InputLabel>{t("pages.jobDetail.update.assignedTech")}</InputLabel>
-            <Select label={t("pages.jobDetail.update.assignedTech")} value={form.assignedTo} onChange={(e) => setForm((p) => ({ ...p, assignedTo: e.target.value }))}>
-              <MenuItem value="">{t("pages.jobDetail.update.unassigned")}</MenuItem>
-              {technicians.map((tc) => (
-                <MenuItem key={tc.uid} value={tc.uid}>{tc.displayName}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>{t("pages.jobDetail.update.assignedTech")}</InputLabel>
+              <Select label={t("pages.jobDetail.update.assignedTech")} value={form.assignedTo} onChange={(e) => setForm((p) => ({ ...p, assignedTo: e.target.value }))}>
+                <MenuItem value="">{t("pages.jobDetail.update.unassigned")}</MenuItem>
+                {technicians.map((tc) => (
+                  <MenuItem key={tc.uid} value={tc.uid}>{tc.displayName}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-          {saveError && <Alert severity="error">{saveError}</Alert>}
-          {saved && <Alert severity="success">{t("common.savedOk")}</Alert>}
+            {saveError && <Alert severity="error">{saveError}</Alert>}
+            {saved && <Alert severity="success">{t("common.savedOk")}</Alert>}
 
-          <Box>
-            <Button
-              variant="contained"
-              startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
-              onClick={handleSave}
-              disabled={saving}
-            >
-              {saving ? t("common.saving") : t("common.saveChanges")}
-            </Button>
-          </Box>
-        </Stack>
-      </Paper>
+            <Box>
+              <Button
+                variant="contained"
+                startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving ? t("common.saving") : t("common.saveChanges")}
+              </Button>
+            </Box>
+          </Stack>
+        </Paper>
+      )}
     </Stack>
   );
 }
@@ -376,6 +393,8 @@ export default function JobDetail() {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState(0);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -391,6 +410,22 @@ export default function JobDetail() {
     );
     return () => unsub();
   }, [jobId]);
+
+  const handleArchive = async () => {
+    setArchiving(true);
+    try {
+      await updateDoc(doc(db, "jobs", jobId), {
+        archived:   true,
+        archivedAt: serverTimestamp(),
+      });
+      setArchiveOpen(false);
+      navigate("/jobs");
+    } catch (e) {
+      console.error("Archive error:", e);
+    } finally {
+      setArchiving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -412,9 +447,21 @@ export default function JobDetail() {
     );
   }
 
+  // Compute archive expiry info
+  let archiveExpiryLabel = null;
+  if (job.archived && job.archivedAt) {
+    const d = job.archivedAt?.toDate ? job.archivedAt.toDate() : new Date(job.archivedAt);
+    const daysLeft = dayjs(d).add(14, "day").diff(dayjs().startOf("day"), "day");
+    archiveExpiryLabel = daysLeft <= 0
+      ? t("pages.jobDetail.archive.expiringSoon")
+      : t("pages.jobDetail.archive.expiresIn", { count: daysLeft });
+  }
+
+  const displayTitle = job.jobId || job.title || t("pages.jobDetail.backBtn");
+
   return (
     <Box>
-      <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 2 }}>
+      <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 2 }} flexWrap="wrap">
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate("/jobs")}
@@ -422,11 +469,33 @@ export default function JobDetail() {
         >
           {t("pages.jobDetail.backBtn")}
         </Button>
+
         <Typography variant="h5" fontWeight={800} sx={{ flex: 1 }} noWrap>
-          {job.title}
+          {displayTitle}
         </Typography>
-        <PriorityChip value={job.priority} />
+
         <StatusChip value={job.status} />
+
+        {job.archived ? (
+          <Tooltip title={archiveExpiryLabel}>
+            <Chip
+              icon={<ArchiveIcon />}
+              label={t("pages.jobDetail.archive.chip")}
+              color="default"
+              size="small"
+            />
+          </Tooltip>
+        ) : job.status === "resolved" ? (
+          <Button
+            variant="outlined"
+            color="success"
+            startIcon={<ArchiveIcon />}
+            size="small"
+            onClick={() => setArchiveOpen(true)}
+          >
+            {t("pages.jobDetail.archive.button")}
+          </Button>
+        ) : null}
       </Stack>
 
       <Paper variant="outlined" sx={{ borderRadius: 2, mb: 3 }}>
@@ -448,6 +517,26 @@ export default function JobDetail() {
           </TabPanel>
         </Box>
       </Paper>
+
+      {/* Archive confirmation dialog */}
+      <Dialog open={archiveOpen} onClose={() => setArchiveOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>{t("pages.jobDetail.archive.confirmTitle")}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">{t("pages.jobDetail.archive.confirmDesc")}</Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setArchiveOpen(false)}>{t("common.cancel")}</Button>
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={archiving ? <CircularProgress size={16} color="inherit" /> : <ArchiveIcon />}
+            onClick={handleArchive}
+            disabled={archiving}
+          >
+            {t("pages.jobDetail.archive.proceed")}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

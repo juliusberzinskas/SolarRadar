@@ -54,6 +54,19 @@
     "maintenance": "Maintenance"
   },
 
+  "expertise": {
+    "electrician": "Electrician",
+    "inv_elect": "Inverter Electrician",
+    "mount_spec": "Mounting System Specialist",
+    "panel_spec": "Panel Specialist",
+    "short": {
+      "electrician": "Elect.",
+      "inv_elect": "InvElect",
+      "mount_spec": "MountSysSpec",
+      "panel_spec": "PanelSpec"
+    }
+  },
+
   "pages": {
     "dashboard": {
       "title": "Dashboard",
@@ -143,11 +156,24 @@
       "title": "Jobs",
       "subtitle": "Fault and maintenance job management",
       "create": "Create job",
+      "tabs": {
+        "active": "Active",
+        "archive": "Archive"
+      },
+      "resolvedHint": "Resolved — ready to archive",
+      "archive": {
+        "col": {
+          "archivedAt": "Archived on",
+          "expiresIn": "Auto-deletes"
+        },
+        "expiresIn": "{{count}}d left",
+        "expiring": "Expiring soon"
+      },
       "col": {
-        "name": "Name",
+        "jobId": "ID",
         "site": "Site",
         "type": "Type",
-        "priority": "Priority",
+        "deadline": "Deadline",
         "status": "Status",
         "assigned": "Assigned",
         "updated": "Updated"
@@ -155,19 +181,23 @@
       "filter": {
         "site": "Site",
         "status": "Status",
-        "priority": "Priority",
         "assignment": "Assignment",
         "assigned": "Assigned",
         "unassigned": "Unassigned"
       },
       "form": {
-        "title": "Title",
         "site": "Site",
         "noSite": "— None —",
         "type": "Type",
-        "priority": "Priority",
-        "reqLevel": "Required level",
+        "reqExpertise": "Required expertise",
+        "setDeadline": "Set deadline",
+        "deadline": "Deadline date",
         "description": "Description"
+      },
+      "deadline": {
+        "overdue": "Overdue",
+        "today": "Today",
+        "days": "{{count}}d left"
       },
       "dialog": {
         "title": "Create job"
@@ -182,13 +212,22 @@
         "info": "Information",
         "attachments": "Attachments"
       },
+      "archive": {
+        "button": "Archive job",
+        "chip": "Archived",
+        "confirmTitle": "Archive this job?",
+        "confirmDesc": "The job will be moved to the archive and automatically deleted after 2 weeks.",
+        "proceed": "Archive",
+        "expiresIn": "Auto-deletes in {{count}} day(s)",
+        "expiringSoon": "Expiring soon"
+      },
       "info": {
         "sectionTitle": "Job information",
         "name": "Name",
         "site": "Site",
         "type": "Type",
-        "priority": "Priority",
-        "reqLevel": "Required level",
+        "deadline": "Deadline",
+        "reqExpertise": "Required expertise",
         "created": "Created",
         "updated": "Updated",
         "description": "Description"
@@ -221,7 +260,7 @@
         "id": "ID",
         "name": "Name",
         "email": "Email",
-        "level": "Level",
+        "expertise": "Expertise",
         "status": "Status",
         "hiredAt": "Hired",
         "tenure": "Tenure (yrs)"
@@ -247,7 +286,7 @@
         "name": "Full name",
         "email": "Email",
         "hiredAt": "Hire date",
-        "level": "Skill level",
+        "expertise": "Expertise",
         "active": "Active",
         "inactive": "Inactive"
       },

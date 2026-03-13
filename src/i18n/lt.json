@@ -54,6 +54,19 @@
     "maintenance": "Priežiūra"
   },
 
+  "expertise": {
+    "electrician": "Elektrikas",
+    "inv_elect": "Inverterio elektrikas",
+    "mount_spec": "Montavimo sistemų specialistas",
+    "panel_spec": "Plokščių specialistas",
+    "short": {
+      "electrician": "Elect.",
+      "inv_elect": "InvElect",
+      "mount_spec": "MountSysSpec",
+      "panel_spec": "PanelSpec"
+    }
+  },
+
   "pages": {
     "dashboard": {
       "title": "Skydelis",
@@ -143,11 +156,24 @@
       "title": "Darbai",
       "subtitle": "Gedimų ir techninių darbų valdymas",
       "create": "Sukurti darbą",
+      "tabs": {
+        "active": "Aktyvūs",
+        "archive": "Archyvas"
+      },
+      "resolvedHint": "Užbaigtas — galima archyvuoti",
+      "archive": {
+        "col": {
+          "archivedAt": "Archyvuota",
+          "expiresIn": "Ištrinamas"
+        },
+        "expiresIn": "Liko {{count}}d",
+        "expiring": "Greitai trinamas"
+      },
       "col": {
-        "name": "Pavadinimas",
+        "jobId": "ID",
         "site": "Objektas",
         "type": "Tipas",
-        "priority": "Prioritetas",
+        "deadline": "Terminas",
         "status": "Statusas",
         "assigned": "Atsakingas",
         "updated": "Atnaujinta"
@@ -155,19 +181,23 @@
       "filter": {
         "site": "Objektas",
         "status": "Statusas",
-        "priority": "Prioritetas",
         "assignment": "Priskyrimas",
         "assigned": "Priskirtas",
         "unassigned": "Nepriskirtas"
       },
       "form": {
-        "title": "Pavadinimas",
         "site": "Objektas",
         "noSite": "— Nėra —",
         "type": "Tipas",
-        "priority": "Prioritetas",
-        "reqLevel": "Reikalingas lygis",
+        "reqExpertise": "Reikalinga kompetencija",
+        "setDeadline": "Nustatyti terminą",
+        "deadline": "Termino data",
         "description": "Aprašymas"
+      },
+      "deadline": {
+        "overdue": "Vėluojama",
+        "today": "Šiandien",
+        "days": "Liko {{count}}d"
       },
       "dialog": {
         "title": "Sukurti darbą"
@@ -182,13 +212,22 @@
         "info": "Informacija",
         "attachments": "Priedai"
       },
+      "archive": {
+        "button": "Archyvuoti darbą",
+        "chip": "Archyvuota",
+        "confirmTitle": "Archyvuoti šį darbą?",
+        "confirmDesc": "Darbas bus perkeltas į archyvą ir automatiškai ištrintas po 2 savaičių.",
+        "proceed": "Archyvuoti",
+        "expiresIn": "Automatiškai ištrinamas po {{count}} d.",
+        "expiringSoon": "Greitai trinamas"
+      },
       "info": {
         "sectionTitle": "Darbo informacija",
         "name": "Pavadinimas",
         "site": "Objektas",
         "type": "Tipas",
-        "priority": "Prioritetas",
-        "reqLevel": "Reikalingas lygis",
+        "deadline": "Terminas",
+        "reqExpertise": "Reikalinga kompetencija",
         "created": "Sukurta",
         "updated": "Atnaujinta",
         "description": "Aprašymas"
@@ -221,7 +260,7 @@
         "id": "ID",
         "name": "Vardas",
         "email": "El. paštas",
-        "level": "Lygis",
+        "expertise": "Kompetencija",
         "status": "Statusas",
         "hiredAt": "Įdarbintas",
         "tenure": "Stažas (m.)"
@@ -247,7 +286,7 @@
         "name": "Vardas ir pavardė",
         "email": "El. paštas",
         "hiredAt": "Įdarbinimo data",
-        "level": "Įgūdžių lygis",
+        "expertise": "Kompetencija",
         "active": "Aktyvus",
         "inactive": "Neaktyvus"
       },
