@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
+import { useTranslation } from "react-i18next";
 import {
   collection,
   query,
   where,
   onSnapshot,
-  addDoc,
   updateDoc,
   doc,
+  setDoc,
+  getDocs,
   serverTimestamp,
+  addDoc,
 } from "firebase/firestore";
-import { db } from "../firebase";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth, db, firebaseApiKey } from "../firebase";
 import {
   Alert,
   Box,
@@ -26,12 +30,14 @@ import {
   MenuItem,
   Paper,
   Select,
+  Snackbar,
   Stack,
   Switch,
+  Tab,
+  Tabs,
   TextField,
   Typography,
 } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
 
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -40,8 +46,10 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 
+import { DataGrid } from "@mui/x-data-grid";
 import PageHeader from "../components/PageHeader";
 import FilterBar from "../components/FilterBar";
+import { useAuth } from "../contexts/AuthContext";
 
 function yearsInCompany(hiredAt) {
   if (!hiredAt) return null;
@@ -50,17 +58,18 @@ function yearsInCompany(hiredAt) {
 }
 
 function ActiveChip({ value }) {
+  const { t } = useTranslation();
   return (
     <Chip
       size="small"
-      label={value ? "Aktyvus" : "Neaktyvus"}
+      label={value ? t("status.active") : t("status.inactive")}
       color={value ? "success" : "default"}
       variant="outlined"
     />
   );
 }
 
-const emptyForm = () => ({
+const emptyTechForm = () => ({
   displayName: "",
   email: "",
   active: true,
@@ -68,24 +77,48 @@ const emptyForm = () => ({
   level: 1,
 });
 
-export default function Members() {
-  // Firestore data
+const emptyAdminForm = () => ({
+  displayName: "",
+  email: "",
+  active: true,
+});
+
+// Firebase Auth REST API error codes → Lithuanian messages
+const AUTH_ERRORS = {
+  EMAIL_EXISTS: "Šis el. paštas jau naudojamas.",
+  INVALID_EMAIL: "Neteisingas el. pašto formatas.",
+  OPERATION_NOT_ALLOWED: "El. pašto registracija išjungta Firebase konsolėje.",
+  TOO_MANY_ATTEMPTS_TRY_LATER: "Per daug bandymų. Pabandykite vėliau.",
+};
+
+// Returns next sequential member ID like SR01, SR02, SR03 ...
+async function getNextMemberId() {
+  const snap = await getDocs(collection(db, "users"));
+  const nums = snap.docs
+    .map((d) => d.data().memberId)
+    .filter((id) => /^SR\d+$/.test(id))
+    .map((id) => parseInt(id.slice(2), 10));
+  const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+  return `SR${String(next).padStart(2, "0")}`;
+}
+
+function TechniciansTab() {
+  const { t } = useTranslation();
   const [members, setMembers] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
 
-  // Filters
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
   const [minYears, setMinYears] = useState("all");
 
-  // Dialogs
   const [openCreate, setOpenCreate] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [editingRow, setEditingRow] = useState(null);
-  const [form, setForm] = useState(emptyForm());
+  const [form, setForm] = useState(emptyTechForm());
   const [saveError, setSaveError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
 
-  // Subscribe to technicians in Firestore
   useEffect(() => {
     const q = query(collection(db, "users"), where("role", "==", "technician"));
     const unsub = onSnapshot(
@@ -110,26 +143,23 @@ export default function Members() {
         (m.displayName || "").toLowerCase().includes(q) ||
         (m.email || "").toLowerCase().includes(q) ||
         m.id.toLowerCase().includes(q);
-
       const matchesActive =
         activeFilter === "all" ? true : activeFilter === "active" ? m.active : !m.active;
-
       const yearsStr = yearsInCompany(m.hiredAt);
       const yearsNum = yearsStr === "<1" ? 0 : Number(yearsStr ?? 0);
       const matchesMinYears = minYears === "all" ? true : yearsNum >= Number(minYears);
-
       return matchesSearch && matchesActive && matchesMinYears;
     });
   }, [members, search, activeFilter, minYears]);
 
   const columns = useMemo(
     () => [
-      { field: "id", headerName: "ID", width: 150 },
-      { field: "displayName", headerName: "Vardas", flex: 1, minWidth: 220 },
-      { field: "email", headerName: "El. paštas", width: 220 },
+      { field: "memberId", headerName: t("pages.members.col.id"), width: 90, renderCell: (p) => <b>{p.value ?? "—"}</b> },
+      { field: "displayName", headerName: t("pages.members.col.name"), flex: 1, minWidth: 220 },
+      { field: "email", headerName: t("pages.members.col.email"), width: 220 },
       {
         field: "level",
-        headerName: "Lygis",
+        headerName: t("pages.members.col.level"),
         width: 90,
         renderCell: (p) => (
           <Chip size="small" label={`L${p.value ?? "?"}`} variant="outlined" sx={{ fontWeight: 700 }} />
@@ -137,15 +167,15 @@ export default function Members() {
       },
       {
         field: "active",
-        headerName: "Statusas",
+        headerName: t("pages.members.col.status"),
         width: 130,
         renderCell: (p) => <ActiveChip value={p.value} />,
         sortable: false,
       },
-      { field: "hiredAt", headerName: "Įdarbinimo data", width: 140 },
+      { field: "hiredAt", headerName: t("pages.members.col.hiredAt"), width: 140 },
       {
         field: "years",
-        headerName: "Metai",
+        headerName: t("pages.members.col.tenure"),
         width: 100,
         sortable: false,
         renderCell: (params) => {
@@ -181,33 +211,41 @@ export default function Members() {
               setSaveError("");
               setOpenEdit(true);
             }}
-            title="Edit"
           >
             <EditIcon fontSize="small" />
           </IconButton>
         ),
       },
     ],
-    []
+    [t]
   );
-
-  const onReset = () => {
-    setSearch("");
-    setActiveFilter("all");
-    setMinYears("all");
-  };
-
-  const openCreateDialog = () => {
-    setForm(emptyForm());
-    setSaveError("");
-    setOpenCreate(true);
-  };
 
   const handleCreate = async () => {
     setSaveError("");
+    setSaving(true);
     try {
-      await addDoc(collection(db, "users"), {
+      const tempPassword = "Tmp@" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 4).toUpperCase();
+
+      const res = await fetch(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${firebaseApiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: form.email, password: tempPassword, returnSecureToken: false }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        const code = data.error?.message ?? "UNKNOWN";
+        throw new Error(AUTH_ERRORS[code] ?? `Firebase klaida: ${code}`);
+      }
+
+      await sendPasswordResetEmail(auth, form.email);
+
+      const memberId = await getNextMemberId();
+      await setDoc(doc(db, "users", data.localId), {
         role: "technician",
+        memberId,
         displayName: form.displayName,
         email: form.email,
         active: form.active,
@@ -215,10 +253,13 @@ export default function Members() {
         level: form.level,
         createdAt: serverTimestamp(),
       });
+
       setOpenCreate(false);
+      setSuccessMsg(t("pages.members.successCreate", { email: form.email }));
     } catch (e) {
-      console.error("Create member error:", e);
       setSaveError(e.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -234,38 +275,36 @@ export default function Members() {
       });
       setOpenEdit(false);
     } catch (e) {
-      console.error("Update member error:", e);
       setSaveError(e.message);
     }
   };
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Box>
-        <PageHeader
-          title="Darbuotojai"
-          subtitle="Technikų profiliai ir įdarbinimo data"
-          primaryAction={{
-            label: "Pridėti darbuotoją",
-            icon: <AddIcon />,
-            onClick: openCreateDialog,
-          }}
-        />
+    <>
+      <Box sx={{ mt: 2 }}>
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => { setForm(emptyTechForm()); setSaveError(""); setOpenCreate(true); }}
+          >
+            {t("pages.members.addTech")}
+          </Button>
+        </Box>
 
-        <FilterBar search={search} onSearchChange={setSearch} onReset={onReset}>
+        <FilterBar search={search} onSearchChange={setSearch} onReset={() => { setSearch(""); setActiveFilter("all"); setMinYears("all"); }}>
           <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel>Statusas</InputLabel>
-            <Select label="Statusas" value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}>
-              <MenuItem value="all">Visi</MenuItem>
-              <MenuItem value="active">Aktyvus</MenuItem>
-              <MenuItem value="inactive">Neaktyvus</MenuItem>
+            <InputLabel>{t("pages.members.col.status")}</InputLabel>
+            <Select label={t("pages.members.col.status")} value={activeFilter} onChange={(e) => setActiveFilter(e.target.value)}>
+              <MenuItem value="all">{t("common.all")}</MenuItem>
+              <MenuItem value="active">{t("status.active")}</MenuItem>
+              <MenuItem value="inactive">{t("status.inactive")}</MenuItem>
             </Select>
           </FormControl>
-
           <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>Min. metai</InputLabel>
-            <Select label="Min. metai" value={minYears} onChange={(e) => setMinYears(e.target.value)}>
-              <MenuItem value="all">Visi</MenuItem>
+            <InputLabel>{t("pages.members.filter.minYears")}</InputLabel>
+            <Select label={t("pages.members.filter.minYears")} value={minYears} onChange={(e) => setMinYears(e.target.value)}>
+              <MenuItem value="all">{t("common.all")}</MenuItem>
               <MenuItem value="0">0+</MenuItem>
               <MenuItem value="1">1+</MenuItem>
               <MenuItem value="3">3+</MenuItem>
@@ -276,158 +315,239 @@ export default function Members() {
         </FilterBar>
 
         <Paper sx={{ borderRadius: 2 }} variant="outlined">
-          <Box sx={{ height: 560, width: "100%" }}>
+          <Box sx={{ height: 520, width: "100%" }}>
             <DataGrid
               rows={rows}
               columns={columns}
               loading={loadingData}
               pageSizeOptions={[5, 10, 25]}
-              initialState={{
-                pagination: { paginationModel: { pageSize: 10, page: 0 } },
-              }}
+              initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
               disableRowSelectionOnClick
             />
           </Box>
         </Paper>
+      </Box>
 
-        {/* Sukūrimo dialogas */}
-        <Dialog open={openCreate} onClose={() => setOpenCreate(false)} fullWidth maxWidth="sm">
-          <DialogTitle>Pridėti darbuotoją</DialogTitle>
-          <DialogContent>
-            <Stack spacing={2} sx={{ mt: 1 }}>
-              <TextField
-                label="Vardas ir pavardė"
-                value={form.displayName}
-                onChange={(e) => setForm((p) => ({ ...p, displayName: e.target.value }))}
-                fullWidth
-              />
-              <TextField
-                label="El. paštas"
-                value={form.email}
-                onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                fullWidth
-              />
-
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                <DatePicker
-                  label="Įdarbinimo data"
-                  value={form.hiredAt}
-                  onChange={(v) => setForm((p) => ({ ...p, hiredAt: v }))}
-                  slotProps={{ textField: { fullWidth: true } }}
-                />
-
-                <FormControl fullWidth>
-                  <InputLabel>Įgūdžių lygis</InputLabel>
-                  <Select
-                    label="Įgūdžių lygis"
-                    value={form.level}
-                    onChange={(e) => setForm((p) => ({ ...p, level: Number(e.target.value) }))}
-                  >
-                    {[1, 2, 3, 4, 5].map((l) => (
-                      <MenuItem key={l} value={l}>L{l}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Stack>
-
-              <Stack direction="row" alignItems="center" justifyContent="space-between">
-                <Typography>Statusas</Typography>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography variant="body2" color="text.secondary">
-                    {form.active ? "Aktyvus" : "Neaktyvus"}
-                  </Typography>
-                  <Switch
-                    checked={form.active}
-                    onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))}
-                  />
-                </Stack>
-              </Stack>
-
-              {saveError && <Alert severity="error">{saveError}</Alert>}
+      {/* Create dialog */}
+      <Dialog open={openCreate} onClose={() => setOpenCreate(false)} fullWidth maxWidth="sm">
+        <DialogTitle>{t("pages.members.dialog.createTech")}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField label={t("pages.members.form.name")} value={form.displayName} onChange={(e) => setForm((p) => ({ ...p, displayName: e.target.value }))} fullWidth />
+            <TextField label={t("pages.members.form.email")} value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} fullWidth />
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <DatePicker label={t("pages.members.form.hiredAt")} value={form.hiredAt} onChange={(v) => setForm((p) => ({ ...p, hiredAt: v }))} slotProps={{ textField: { fullWidth: true } }} />
+              <FormControl fullWidth>
+                <InputLabel>{t("pages.members.form.level")}</InputLabel>
+                <Select label={t("pages.members.form.level")} value={form.level} onChange={(e) => setForm((p) => ({ ...p, level: Number(e.target.value) }))}>
+                  {[1, 2, 3, 4, 5].map((l) => <MenuItem key={l} value={l}>L{l}</MenuItem>)}
+                </Select>
+              </FormControl>
             </Stack>
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={() => setOpenCreate(false)}>Atšaukti</Button>
-            <Button variant="contained" onClick={handleCreate}>Išsaugoti</Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Redagavimo dialogas */}
-        <Dialog open={openEdit} onClose={() => setOpenEdit(false)} fullWidth maxWidth="sm">
-          <DialogTitle>Redaguoti darbuotoją</DialogTitle>
-          <DialogContent>
-            <Stack spacing={2} sx={{ mt: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                ID: <b>{editingRow?.id}</b>
-              </Typography>
-
-              <TextField
-                label="Vardas ir pavardė"
-                value={form.displayName}
-                onChange={(e) => setForm((p) => ({ ...p, displayName: e.target.value }))}
-                fullWidth
-              />
-              <TextField
-                label="El. paštas"
-                value={form.email}
-                onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                fullWidth
-              />
-
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                <DatePicker
-                  label="Įdarbinimo data"
-                  value={form.hiredAt}
-                  onChange={(v) => setForm((p) => ({ ...p, hiredAt: v }))}
-                  slotProps={{ textField: { fullWidth: true } }}
-                />
-
-                <FormControl fullWidth>
-                  <InputLabel>Įgūdžių lygis</InputLabel>
-                  <Select
-                    label="Įgūdžių lygis"
-                    value={form.level}
-                    onChange={(e) => setForm((p) => ({ ...p, level: Number(e.target.value) }))}
-                  >
-                    {[1, 2, 3, 4, 5].map((l) => (
-                      <MenuItem key={l} value={l}>L{l}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+            <Stack direction="row" alignItems="center" justifyContent="space-between">
+              <Typography>{t("pages.members.col.status")}</Typography>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Typography variant="body2" color="text.secondary">{form.active ? t("pages.members.form.active") : t("pages.members.form.inactive")}</Typography>
+                <Switch checked={form.active} onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))} />
               </Stack>
-
-              <Stack direction="row" alignItems="center" justifyContent="space-between">
-                <Typography>Statusas</Typography>
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography variant="body2" color="text.secondary">
-                    {form.active ? "Aktyvus" : "Neaktyvus"}
-                  </Typography>
-                  <Switch
-                    checked={form.active}
-                    onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))}
-                  />
-                </Stack>
-              </Stack>
-
-              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                <Typography fontWeight={700} sx={{ mb: 0.5 }}>Metai įmonėje (peržiūra)</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {form.hiredAt
-                    ? yearsInCompany(form.hiredAt.format("YYYY-MM-DD")) === "<1"
-                      ? "<1 metai"
-                      : `${yearsInCompany(form.hiredAt.format("YYYY-MM-DD"))} m.`
-                    : "—"}
-                </Typography>
-              </Paper>
-
-              {saveError && <Alert severity="error">{saveError}</Alert>}
             </Stack>
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={() => setOpenEdit(false)}>Atšaukti</Button>
-            <Button variant="contained" onClick={handleUpdate}>Atnaujinti</Button>
-          </DialogActions>
-        </Dialog>
+            {saveError && <Alert severity="error">{saveError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setOpenCreate(false)} disabled={saving}>{t("common.cancel")}</Button>
+          <Button variant="contained" onClick={handleCreate} disabled={saving}>
+            {saving ? t("pages.members.creating") : t("common.save")}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit dialog */}
+      <Dialog open={openEdit} onClose={() => setOpenEdit(false)} fullWidth maxWidth="sm">
+        <DialogTitle>{t("pages.members.dialog.editTech")}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="body2" color="text.secondary">{t("pages.members.dialog.idLabel")}<b>{editingRow?.memberId ?? editingRow?.id}</b></Typography>
+            <TextField label={t("pages.members.form.name")} value={form.displayName} onChange={(e) => setForm((p) => ({ ...p, displayName: e.target.value }))} fullWidth />
+            <TextField label={t("pages.members.form.email")} value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} fullWidth />
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <DatePicker label={t("pages.members.form.hiredAt")} value={form.hiredAt} onChange={(v) => setForm((p) => ({ ...p, hiredAt: v }))} slotProps={{ textField: { fullWidth: true } }} />
+              <FormControl fullWidth>
+                <InputLabel>{t("pages.members.form.level")}</InputLabel>
+                <Select label={t("pages.members.form.level")} value={form.level} onChange={(e) => setForm((p) => ({ ...p, level: Number(e.target.value) }))}>
+                  {[1, 2, 3, 4, 5].map((l) => <MenuItem key={l} value={l}>L{l}</MenuItem>)}
+                </Select>
+              </FormControl>
+            </Stack>
+            <Stack direction="row" alignItems="center" justifyContent="space-between">
+              <Typography>{t("pages.members.col.status")}</Typography>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Typography variant="body2" color="text.secondary">{form.active ? t("pages.members.form.active") : t("pages.members.form.inactive")}</Typography>
+                <Switch checked={form.active} onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))} />
+              </Stack>
+            </Stack>
+            {saveError && <Alert severity="error">{saveError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setOpenEdit(false)}>{t("common.cancel")}</Button>
+          <Button variant="contained" onClick={handleUpdate}>{t("pages.members.update")}</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={!!successMsg}
+        autoHideDuration={6000}
+        onClose={() => setSuccessMsg("")}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert severity="success" onClose={() => setSuccessMsg("")} sx={{ width: "100%" }}>
+          {successMsg}
+        </Alert>
+      </Snackbar>
+    </>
+  );
+}
+
+// ─── Administrators tab (superadmin only) ─────────────────────────────────────
+
+function AdminsTab() {
+  const { t } = useTranslation();
+  const [admins, setAdmins] = useState([]);
+  const [loadingData, setLoadingData] = useState(true);
+
+  const [openCreate, setOpenCreate] = useState(false);
+  const [form, setForm] = useState(emptyAdminForm());
+  const [saveError, setSaveError] = useState("");
+
+  useEffect(() => {
+    const q = query(collection(db, "users"), where("role", "==", "admin"));
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        setAdmins(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setLoadingData(false);
+      },
+      (err) => {
+        console.error("Admins listener error:", err);
+        setLoadingData(false);
+      }
+    );
+    return () => unsub();
+  }, []);
+
+  const columns = useMemo(
+    () => [
+      { field: "memberId", headerName: t("pages.members.col.id"), width: 90, renderCell: (p) => <b>{p.value ?? "—"}</b> },
+      { field: "displayName", headerName: t("pages.members.col.name"), flex: 1, minWidth: 220 },
+      { field: "email", headerName: t("pages.members.col.email"), width: 240 },
+      {
+        field: "active",
+        headerName: t("pages.members.col.status"),
+        width: 130,
+        renderCell: (p) => <ActiveChip value={p.value} />,
+        sortable: false,
+      },
+    ],
+    [t]
+  );
+
+  const handleCreate = async () => {
+    setSaveError("");
+    try {
+      await addDoc(collection(db, "users"), {
+        role: "admin",
+        displayName: form.displayName,
+        email: form.email,
+        active: form.active,
+        createdAt: serverTimestamp(),
+      });
+      setOpenCreate(false);
+    } catch (e) {
+      setSaveError(e.message);
+    }
+  };
+
+  return (
+    <>
+      <Box sx={{ mt: 2 }}>
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => { setForm(emptyAdminForm()); setSaveError(""); setOpenCreate(true); }}
+          >
+            {t("pages.members.addAdmin")}
+          </Button>
+        </Box>
+
+        <Paper sx={{ borderRadius: 2 }} variant="outlined">
+          <Box sx={{ height: 520, width: "100%" }}>
+            <DataGrid
+              rows={admins}
+              columns={columns}
+              loading={loadingData}
+              pageSizeOptions={[5, 10, 25]}
+              initialState={{ pagination: { paginationModel: { pageSize: 10, page: 0 } } }}
+              disableRowSelectionOnClick
+            />
+          </Box>
+        </Paper>
+      </Box>
+
+      <Dialog open={openCreate} onClose={() => setOpenCreate(false)} fullWidth maxWidth="sm">
+        <DialogTitle>{t("pages.members.dialog.createAdmin")}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Alert severity="info">
+              Naujas vartotojas gaus rolę „Administratorius". Prisijungimo paskyra turi būti
+              sukurta atskirai Firebase Authentication konsolėje.
+            </Alert>
+            <TextField label={t("pages.members.form.name")} value={form.displayName} onChange={(e) => setForm((p) => ({ ...p, displayName: e.target.value }))} fullWidth />
+            <TextField label={t("pages.members.form.email")} value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} fullWidth />
+            <Stack direction="row" alignItems="center" justifyContent="space-between">
+              <Typography>{t("pages.members.col.status")}</Typography>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Typography variant="body2" color="text.secondary">{form.active ? t("pages.members.form.active") : t("pages.members.form.inactive")}</Typography>
+                <Switch checked={form.active} onChange={(e) => setForm((p) => ({ ...p, active: e.target.checked }))} />
+              </Stack>
+            </Stack>
+            {saveError && <Alert severity="error">{saveError}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setOpenCreate(false)}>{t("common.cancel")}</Button>
+          <Button variant="contained" onClick={handleCreate}>{t("common.save")}</Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
+export default function Members() {
+  const { isSuperAdmin } = useAuth();
+  const { t } = useTranslation();
+  const [tab, setTab] = useState(0);
+
+  return (
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Box>
+        <PageHeader
+          title={t("pages.members.title")}
+          subtitle={t("pages.members.subtitle")}
+        />
+
+        {isSuperAdmin && (
+          <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 1, borderBottom: 1, borderColor: "divider" }}>
+            <Tab label={t("pages.members.tabs.technicians")} />
+            <Tab label={t("pages.members.tabs.admins")} />
+          </Tabs>
+        )}
+
+        {tab === 0 && <TechniciansTab />}
+        {tab === 1 && isSuperAdmin && <AdminsTab />}
       </Box>
     </LocalizationProvider>
   );

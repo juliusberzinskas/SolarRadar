@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { doc, onSnapshot, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
 import {
   ref,
@@ -42,32 +43,26 @@ import DownloadIcon from "@mui/icons-material/Download";
 
 dayjs.extend(relativeTime);
 
-const TYPE_LABELS = {
-  inverter_fault: "Inverterio gedimas",
-  communication:  "Ryšio problema",
-  string_issue:   "Grandinės problema",
-  inspection:     "Patikrinimas",
-  maintenance:    "Priežiūra",
-};
-
 function StatusChip({ value }) {
+  const { t } = useTranslation();
   const map = {
-    open:        { label: "Atidarytas", color: "warning" },
-    in_progress: { label: "Vykdoma",    color: "info"    },
-    resolved:    { label: "Išspręsta",  color: "success" },
+    open:        { key: "status.open",        color: "warning" },
+    in_progress: { key: "status.in_progress", color: "info"    },
+    resolved:    { key: "status.resolved",    color: "success" },
   };
-  const m = map[value] || { label: value, color: "default" };
-  return <Chip size="small" label={m.label} color={m.color} variant="outlined" />;
+  const m = map[value] || { key: value, color: "default" };
+  return <Chip size="small" label={t(m.key, m.key)} color={m.color} variant="outlined" />;
 }
 
 function PriorityChip({ value }) {
+  const { t } = useTranslation();
   const map = {
-    low:    { label: "Žemas",     color: "default" },
-    medium: { label: "Vidutinis", color: "info"    },
-    high:   { label: "Aukštas",   color: "error"   },
+    low:    { key: "priority.low",    color: "default" },
+    medium: { key: "priority.medium", color: "info"    },
+    high:   { key: "priority.high",   color: "error"   },
   };
-  const m = map[value] || { label: value, color: "default" };
-  return <Chip size="small" label={m.label} color={m.color} variant="outlined" />;
+  const m = map[value] || { key: value, color: "default" };
+  return <Chip size="small" label={t(m.key, m.key)} color={m.color} variant="outlined" />;
 }
 
 function formatDate(val) {
@@ -83,8 +78,8 @@ function TabPanel({ value, index, children }) {
   return <Box sx={{ pt: 3 }}>{children}</Box>;
 }
 
-// ── Informacijos skirtukas ────────────────────────────────────────────────────
 function InfoTab({ job, jobId }) {
+  const { t } = useTranslation();
   const [technicians, setTechnicians] = useState([]);
   const [form, setForm] = useState({ status: job.status, assignedTo: job.assignedTo ?? "" });
   const [saving, setSaving] = useState(false);
@@ -104,7 +99,7 @@ function InfoTab({ job, jobId }) {
     setSaveError("");
     setSaved(false);
     try {
-      const tech = technicians.find((t) => t.uid === form.assignedTo);
+      const tech = technicians.find((tc) => tc.uid === form.assignedTo);
       await updateDoc(doc(db, "jobs", jobId), {
         status:       form.status,
         assignedTo:   form.assignedTo || null,
@@ -122,45 +117,44 @@ function InfoTab({ job, jobId }) {
 
   return (
     <Stack spacing={3}>
-      {/* Tik skaitoma informacija */}
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
-        <Typography fontWeight={700} sx={{ mb: 2 }}>Darbo informacija</Typography>
+        <Typography fontWeight={700} sx={{ mb: 2 }}>{t("pages.jobDetail.info.sectionTitle")}</Typography>
         <Stack spacing={1.2}>
           <Stack direction="row" spacing={1}>
-            <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>Pavadinimas</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{t("pages.jobDetail.info.name")}</Typography>
             <Typography variant="body2" fontWeight={600}>{job.title}</Typography>
           </Stack>
           <Stack direction="row" spacing={1}>
-            <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>Objektas</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{t("pages.jobDetail.info.site")}</Typography>
             <Typography variant="body2">{job.siteName || "—"}</Typography>
           </Stack>
           <Stack direction="row" spacing={1}>
-            <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>Tipas</Typography>
-            <Typography variant="body2">{TYPE_LABELS[job.type] || job.type || "—"}</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{t("pages.jobDetail.info.type")}</Typography>
+            <Typography variant="body2">{t(`jobType.${job.type}`, job.type || "—")}</Typography>
           </Stack>
           <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>Prioritetas</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{t("pages.jobDetail.info.priority")}</Typography>
             <PriorityChip value={job.priority} />
           </Stack>
           {job.requiredLevel && (
             <Stack direction="row" spacing={1}>
-              <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>Reikalingas lygis</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{t("pages.jobDetail.info.reqLevel")}</Typography>
               <Typography variant="body2">L{job.requiredLevel}</Typography>
             </Stack>
           )}
           <Stack direction="row" spacing={1}>
-            <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>Sukurta</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{t("pages.jobDetail.info.created")}</Typography>
             <Typography variant="body2">{formatDate(job.createdAt)}</Typography>
           </Stack>
           <Stack direction="row" spacing={1}>
-            <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>Atnaujinta</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{t("pages.jobDetail.info.updated")}</Typography>
             <Typography variant="body2">{formatDate(job.updatedAt)}</Typography>
           </Stack>
           {job.description && (
             <>
               <Divider sx={{ my: 0.5 }} />
               <Stack direction="row" spacing={1}>
-                <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>Aprašymas</Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ width: 160, flexShrink: 0 }}>{t("pages.jobDetail.info.description")}</Typography>
                 <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>{job.description}</Typography>
               </Stack>
             </>
@@ -168,31 +162,30 @@ function InfoTab({ job, jobId }) {
         </Stack>
       </Paper>
 
-      {/* Redaguojama: Statusas + Technikas */}
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
-        <Typography fontWeight={700} sx={{ mb: 2 }}>Atnaujinti darbą</Typography>
+        <Typography fontWeight={700} sx={{ mb: 2 }}>{t("pages.jobDetail.update.sectionTitle")}</Typography>
         <Stack spacing={2}>
           <FormControl fullWidth>
-            <InputLabel>Statusas</InputLabel>
-            <Select label="Statusas" value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
-              <MenuItem value="open">Atidarytas</MenuItem>
-              <MenuItem value="in_progress">Vykdoma</MenuItem>
-              <MenuItem value="resolved">Išspręsta</MenuItem>
+            <InputLabel>{t("pages.jobDetail.update.status")}</InputLabel>
+            <Select label={t("pages.jobDetail.update.status")} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
+              <MenuItem value="open">{t("status.open")}</MenuItem>
+              <MenuItem value="in_progress">{t("status.in_progress")}</MenuItem>
+              <MenuItem value="resolved">{t("status.resolved")}</MenuItem>
             </Select>
           </FormControl>
 
           <FormControl fullWidth>
-            <InputLabel>Atsakingas technikas</InputLabel>
-            <Select label="Atsakingas technikas" value={form.assignedTo} onChange={(e) => setForm((p) => ({ ...p, assignedTo: e.target.value }))}>
-              <MenuItem value="">— Nepriskirtas —</MenuItem>
-              {technicians.map((t) => (
-                <MenuItem key={t.uid} value={t.uid}>{t.displayName}</MenuItem>
+            <InputLabel>{t("pages.jobDetail.update.assignedTech")}</InputLabel>
+            <Select label={t("pages.jobDetail.update.assignedTech")} value={form.assignedTo} onChange={(e) => setForm((p) => ({ ...p, assignedTo: e.target.value }))}>
+              <MenuItem value="">{t("pages.jobDetail.update.unassigned")}</MenuItem>
+              {technicians.map((tc) => (
+                <MenuItem key={tc.uid} value={tc.uid}>{tc.displayName}</MenuItem>
               ))}
             </Select>
           </FormControl>
 
           {saveError && <Alert severity="error">{saveError}</Alert>}
-          {saved && <Alert severity="success">Sėkmingai išsaugota.</Alert>}
+          {saved && <Alert severity="success">{t("common.savedOk")}</Alert>}
 
           <Box>
             <Button
@@ -201,7 +194,7 @@ function InfoTab({ job, jobId }) {
               onClick={handleSave}
               disabled={saving}
             >
-              {saving ? "Saugoma..." : "Išsaugoti pakeitimus"}
+              {saving ? t("common.saving") : t("common.saveChanges")}
             </Button>
           </Box>
         </Stack>
@@ -210,8 +203,8 @@ function InfoTab({ job, jobId }) {
   );
 }
 
-// ── Priedų skirtukas ──────────────────────────────────────────────────────────
 function AttachmentsTab({ jobId }) {
+  const { t } = useTranslation();
   const [files, setFiles] = useState([]);
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -227,18 +220,12 @@ function AttachmentsTab({ jobId }) {
       const items = await Promise.all(
         result.items.map(async (item) => {
           const [url, meta] = await Promise.all([getDownloadURL(item), getMetadata(item)]);
-          return {
-            name: item.name,
-            url,
-            size: meta.size,
-            contentType: meta.contentType,
-            ref: item,
-          };
+          return { name: item.name, url, size: meta.size, contentType: meta.contentType, ref: item };
         })
       );
       setFiles(items);
     } catch (e) {
-      console.error("Klaida įkeliant priedus:", e);
+      console.error("Error loading attachments:", e);
     } finally {
       setLoadingFiles(false);
     }
@@ -285,7 +272,7 @@ function AttachmentsTab({ jobId }) {
       await deleteObject(file.ref);
       setFiles((prev) => prev.filter((f) => f.name !== file.name));
     } catch (e) {
-      console.error("Klaida trinant priedą:", e);
+      console.error("Error deleting attachment:", e);
     }
   };
 
@@ -297,19 +284,21 @@ function AttachmentsTab({ jobId }) {
 
   const isImage = (contentType) => contentType?.startsWith("image/");
 
+  const countLabel = files.length === 1
+    ? `1 ${t("pages.jobDetail.attachments.countSingular")}`
+    : `${files.length} ${t("pages.jobDetail.attachments.countPlural")}`;
+
   return (
     <Box>
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-        <Typography variant="body2" color="text.secondary">
-          {files.length} {files.length === 1 ? "priedas" : "priedai"}
-        </Typography>
+        <Typography variant="body2" color="text.secondary">{countLabel}</Typography>
         <Button
           variant="outlined"
           startIcon={<CloudUploadIcon />}
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
         >
-          Įkelti failus
+          {t("pages.jobDetail.attachments.upload")}
         </Button>
         <input
           ref={fileInputRef}
@@ -325,7 +314,7 @@ function AttachmentsTab({ jobId }) {
         <Box sx={{ mb: 2 }}>
           <LinearProgress variant="determinate" value={uploadProgress} />
           <Typography variant="caption" color="text.secondary">
-            Įkeliama... {uploadProgress}%
+            {t("pages.jobDetail.attachments.uploading", { pct: uploadProgress })}
           </Typography>
         </Box>
       )}
@@ -338,7 +327,7 @@ function AttachmentsTab({ jobId }) {
         </Stack>
       ) : files.length === 0 ? (
         <Paper variant="outlined" sx={{ p: 4, borderRadius: 2, textAlign: "center" }}>
-          <Typography color="text.secondary">Priedų dar nėra.</Typography>
+          <Typography color="text.secondary">{t("pages.jobDetail.attachments.none")}</Typography>
         </Paper>
       ) : (
         <Stack spacing={1}>
@@ -362,12 +351,12 @@ function AttachmentsTab({ jobId }) {
                   {file.contentType} · {formatSize(file.size)}
                 </Typography>
               </Box>
-              <Tooltip title="Atsisiųsti">
+              <Tooltip title={t("pages.jobDetail.attachments.download")}>
                 <IconButton size="small" component={Link} href={file.url} target="_blank" rel="noopener">
                   <DownloadIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Ištrinti">
+              <Tooltip title={t("pages.jobDetail.attachments.delete")}>
                 <IconButton size="small" onClick={() => handleDelete(file)} color="error">
                   <DeleteIcon fontSize="small" />
                 </IconButton>
@@ -380,10 +369,10 @@ function AttachmentsTab({ jobId }) {
   );
 }
 
-// ── Puslapis ──────────────────────────────────────────────────────────────────
 export default function JobDetail() {
   const { jobId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState(0);
@@ -396,7 +385,7 @@ export default function JobDetail() {
         setLoading(false);
       },
       (err) => {
-        console.error("JobDetail klaida:", err);
+        console.error("JobDetail error:", err);
         setLoading(false);
       }
     );
@@ -416,23 +405,22 @@ export default function JobDetail() {
     return (
       <Box>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/jobs")}>
-          Darbai
+          {t("pages.jobDetail.backBtn")}
         </Button>
-        <Alert severity="error" sx={{ mt: 2 }}>Darbas nerastas.</Alert>
+        <Alert severity="error" sx={{ mt: 2 }}>{t("pages.jobDetail.notFound")}</Alert>
       </Box>
     );
   }
 
   return (
     <Box>
-      {/* Antraštė */}
       <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 2 }}>
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate("/jobs")}
           sx={{ flexShrink: 0 }}
         >
-          Darbai
+          {t("pages.jobDetail.backBtn")}
         </Button>
         <Typography variant="h5" fontWeight={800} sx={{ flex: 1 }} noWrap>
           {job.title}
@@ -441,15 +429,14 @@ export default function JobDetail() {
         <StatusChip value={job.status} />
       </Stack>
 
-      {/* Skirtukai */}
       <Paper variant="outlined" sx={{ borderRadius: 2, mb: 3 }}>
         <Tabs
           value={tab}
           onChange={(_, v) => setTab(v)}
           sx={{ px: 2, borderBottom: 1, borderColor: "divider" }}
         >
-          <Tab label="Informacija" />
-          <Tab label="Priedai" />
+          <Tab label={t("pages.jobDetail.tabs.info")} />
+          <Tab label={t("pages.jobDetail.tabs.attachments")} />
         </Tabs>
 
         <Box sx={{ p: 3 }}>

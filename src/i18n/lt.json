@@ -18,19 +18,323 @@
     "cancel": "Atšaukti",
     "save": "Išsaugoti",
     "add": "Pridėti",
-    "close": "Uždaryti"
+    "close": "Uždaryti",
+    "all": "Visi",
+    "saving": "Saugoma...",
+    "saveChanges": "Išsaugoti pakeitimus",
+    "savedOk": "Sėkmingai išsaugota.",
+    "delete": "Ištrinti",
+    "download": "Atsisiųsti",
+    "uploading": "Įkeliama...",
+    "notAvailable": "—"
+  },
+
+  "status": {
+    "open": "Atidarytas",
+    "in_progress": "Vykdoma",
+    "resolved": "Išspręsta",
+    "active": "Aktyvus",
+    "inactive": "Neaktyvus",
+    "completed": "Atlikta",
+    "not_completed": "Neatlikta",
+    "requires_maintenance": "Reikalinga priežiūra"
+  },
+
+  "priority": {
+    "low": "Žemas",
+    "medium": "Vidutinis",
+    "high": "Aukštas"
+  },
+
+  "jobType": {
+    "inverter_fault": "Inverterio gedimas",
+    "communication": "Ryšio problema",
+    "string_issue": "Grandinės problema",
+    "inspection": "Patikrinimas",
+    "maintenance": "Priežiūra"
   },
 
   "pages": {
-    "dashboard": { "title": "Skydelis" },
-    "sites": { "title": "Objektai", "add": "Pridėti objektą" },
-    "jobs": { "title": "Darbai", "create": "Sukurti darbą" },
-    "members": { "title": "Darbuotojai", "add": "Pridėti darbuotoją" },
+    "dashboard": {
+      "title": "Skydelis",
+      "subtitle": "Sistemos suvestinė",
+      "kpi": {
+        "open": "Atidaryti darbai",
+        "inProgress": "Vykdoma",
+        "resolved": "Išspręsta",
+        "activeSites": "Aktyvūs objektai"
+      },
+      "recentJobs": "Naujausi darbai",
+      "recentJobsCaption": "Paskutiniai {{count}} pridėtų darbų",
+      "noJobs": "Nėra darbų — pirmiausia sukurkite demo duomenis Nustatymuose."
+    },
+
+    "sites": {
+      "title": "Objektai",
+      "subtitle": "Objektų registravimas ir lokacijų valdymas",
+      "add": "Pridėti objektą",
+      "col": {
+        "name": "Pavadinimas",
+        "address": "Adresas",
+        "region": "Regionas",
+        "status": "Statusas",
+        "capacity": "kW",
+        "updated": "Atnaujinta"
+      },
+      "filter": {
+        "region": "Regionas",
+        "status": "Statusas"
+      },
+      "form": {
+        "name": "Objekto pavadinimas",
+        "address": "Adresas",
+        "region": "Regionas",
+        "status": "Statusas",
+        "capacity": "Galia (kW)",
+        "lat": "Platuma",
+        "lng": "Ilguma"
+      },
+      "dialog": {
+        "add": "Pridėti objektą"
+      }
+    },
+
+    "siteDetail": {
+      "backBtn": "Objektai",
+      "notFound": "Objektas nerastas.",
+      "tabs": {
+        "info": "Informacija",
+        "map": "Žemėlapis",
+        "mounting": "Montavimo sistema",
+        "photos": "Nuotraukos"
+      },
+      "info": {
+        "name": "Objekto pavadinimas",
+        "address": "Adresas",
+        "region": "Regionas",
+        "status": "Statusas",
+        "capacity": "Galia (kW)",
+        "lat": "Platuma",
+        "lng": "Ilguma"
+      },
+      "map": {
+        "noCoords": "Koordinatės dar neįvestos. Įveskite platumą ir ilgumą Informacijos skirtuke, kad matytumėte žemėlapį.",
+        "iframeTitle": "Objekto vieta"
+      },
+      "mounting": {
+        "panelType": "Saulės kolektoriaus tipas",
+        "panelTypePlaceholder": "pvz. Monokristalinis 400W",
+        "panelCount": "Kolektorių skaičius",
+        "inverterModel": "Inverterio modelis",
+        "mountingType": "Montavimo tipas",
+        "installDate": "Įrengimo data"
+      },
+      "photos": {
+        "upload": "Įkelti nuotraukas",
+        "uploading": "Įkeliama... {{pct}}%",
+        "none": "Nuotraukų dar nėra.",
+        "delete": "Ištrinti",
+        "countSingular": "nuotrauka",
+        "countPlural": "nuotraukos"
+      }
+    },
+
+    "jobs": {
+      "title": "Darbai",
+      "subtitle": "Gedimų ir techninių darbų valdymas",
+      "create": "Sukurti darbą",
+      "col": {
+        "name": "Pavadinimas",
+        "site": "Objektas",
+        "type": "Tipas",
+        "priority": "Prioritetas",
+        "status": "Statusas",
+        "assigned": "Atsakingas",
+        "updated": "Atnaujinta"
+      },
+      "filter": {
+        "site": "Objektas",
+        "status": "Statusas",
+        "priority": "Prioritetas",
+        "assignment": "Priskyrimas",
+        "assigned": "Priskirtas",
+        "unassigned": "Nepriskirtas"
+      },
+      "form": {
+        "title": "Pavadinimas",
+        "site": "Objektas",
+        "noSite": "— Nėra —",
+        "type": "Tipas",
+        "priority": "Prioritetas",
+        "reqLevel": "Reikalingas lygis",
+        "description": "Aprašymas"
+      },
+      "dialog": {
+        "title": "Sukurti darbą"
+      },
+      "creating": "Kuriama..."
+    },
+
+    "jobDetail": {
+      "backBtn": "Darbai",
+      "notFound": "Darbas nerastas.",
+      "tabs": {
+        "info": "Informacija",
+        "attachments": "Priedai"
+      },
+      "info": {
+        "sectionTitle": "Darbo informacija",
+        "name": "Pavadinimas",
+        "site": "Objektas",
+        "type": "Tipas",
+        "priority": "Prioritetas",
+        "reqLevel": "Reikalingas lygis",
+        "created": "Sukurta",
+        "updated": "Atnaujinta",
+        "description": "Aprašymas"
+      },
+      "update": {
+        "sectionTitle": "Atnaujinti darbą",
+        "status": "Statusas",
+        "assignedTech": "Atsakingas technikas",
+        "unassigned": "— Nepriskirtas —"
+      },
+      "attachments": {
+        "upload": "Įkelti failus",
+        "uploading": "Įkeliama... {{pct}}%",
+        "none": "Priedų dar nėra.",
+        "download": "Atsisiųsti",
+        "delete": "Ištrinti",
+        "countSingular": "priedas",
+        "countPlural": "priedai"
+      }
+    },
+
+    "members": {
+      "title": "Darbuotojai",
+      "subtitle": "Technikų ir administratorių valdymas",
+      "tabs": {
+        "technicians": "Technikai",
+        "admins": "Administratoriai"
+      },
+      "col": {
+        "id": "ID",
+        "name": "Vardas",
+        "email": "El. paštas",
+        "level": "Lygis",
+        "status": "Statusas",
+        "hiredAt": "Įdarbintas",
+        "tenure": "Stažas (m.)"
+      },
+      "filter": {
+        "active": "Aktyvus",
+        "inactive": "Neaktyvus",
+        "minYears": "Min. metai",
+        "anyYears": "Visi",
+        "years1": "≥ 1 metai",
+        "years2": "≥ 2 metai",
+        "years5": "≥ 5 metai"
+      },
+      "addTech": "Pridėti techniką",
+      "addAdmin": "Pridėti administratorių",
+      "dialog": {
+        "createTech": "Naujas technikas",
+        "editTech": "Redaguoti techniką",
+        "createAdmin": "Naujas administratorius",
+        "idLabel": "ID: "
+      },
+      "form": {
+        "name": "Vardas ir pavardė",
+        "email": "El. paštas",
+        "hiredAt": "Įdarbinimo data",
+        "level": "Įgūdžių lygis",
+        "active": "Aktyvus",
+        "inactive": "Neaktyvus"
+      },
+      "creating": "Kuriama...",
+      "update": "Atnaujinti",
+      "successCreate": "Paskyra sukurta. Slaptažodžio nustatymo laiškas išsiųstas į {{email}}"
+    },
+
+    "reports": {
+      "title": "Ataskaitos",
+      "subtitle": "Technikų pateiktos darbo ataskaitos iš mobiliojo",
+      "col": {
+        "technician": "Technikas",
+        "job": "Darbas",
+        "site": "Objektas",
+        "status": "Statusas",
+        "photos": "Nuotraukos",
+        "submitted": "Pateikta"
+      },
+      "filter": {
+        "status": "Statusas",
+        "site": "Objektas"
+      },
+      "photosCount": "{{count}} nuotr.",
+      "empty": {
+        "title": "Ataskaitų dar nėra",
+        "desc": "Kai technikas pateiks ataskaitą iš mobiliosios programėlės, ji atsiras čia. Ataskaitos saugomos Firestore kolekcijoje"
+      }
+    },
+
+    "reportDetail": {
+      "backBtn": "Ataskaitos",
+      "notFound": "Ataskaita nerasta.",
+      "fallbackTitle": "Ataskaita",
+      "tabs": {
+        "info": "Informacija",
+        "photos": "Nuotraukos"
+      },
+      "info": {
+        "sectionTitle": "Ataskaitos informacija",
+        "technician": "Technikas",
+        "job": "Darbas",
+        "site": "Objektas",
+        "status": "Statusas",
+        "submitted": "Pateikta"
+      },
+      "techNotes": {
+        "title": "Techniko pastabos",
+        "empty": "Techniko pastabų nėra."
+      },
+      "adminNotes": {
+        "title": "Admino pastabos",
+        "hint": "Tik vidiniam naudojimui — technikas jų nemato.",
+        "placeholder": "Rašyti vidines pastabas...",
+        "save": "Išsaugoti pastabas"
+      },
+      "photos": {
+        "none": "Techniko nuotraukų nėra.",
+        "hint": "Kai techniko mobili app įkels nuotraukas, jos atsiras čia.",
+        "open": "Atidaryti visą dydį",
+        "label": "Nuotrauka {{n}}",
+        "countSingular": "nuotrauka",
+        "countPlural": "nuotraukos"
+      }
+    },
+
     "settings": {
       "title": "Nustatymai",
-      "languageTitle": "Kalba / Language",
-      "chooseLanguage": "Pasirinkti kalbą",
-      "accountTitle": "Paskyra"
+      "subtitle": "Sistemos nustatymai (kalba, profilis ir kt.)",
+      "lang": {
+        "title": "Kalba / Language",
+        "choose": "Pasirinkti kalbą",
+        "note": "Pasirinkimas išsaugomas naršyklėje (localStorage) ir bus pritaikomas kitą kartą atidarius puslapį."
+      },
+      "account": {
+        "title": "Paskyra",
+        "desc": "Čia vėliau galėsi rodyti admin el. paštą ir kitą profilio informaciją."
+      },
+      "demo": {
+        "title": "Demo duomenys",
+        "desc": "Užpildo Firestore demonstraciniais duomenimis: 5 technikais, 4 objektais ir 8 darbais. Galima paleisti kelis kartus — perrašo esamus įrašus.",
+        "load": "Įkelti demo duomenis",
+        "loading": "Įkeliama...",
+        "confirmTitle": "Įkelti demo duomenis?",
+        "confirmDesc": "Tai įrašys į Firestore 5 technikus, 4 objektus ir 8 darbus. Esami įrašai su tais pačiais ID bus perrašyti.",
+        "proceed": "Tęsti"
+      }
     }
   }
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
+import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/lt";
@@ -25,38 +26,38 @@ import PageHeader from "../components/PageHeader";
 
 dayjs.extend(relativeTime);
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function formatAgo(val) {
+function formatAgo(val, locale) {
   if (!val) return "—";
   try {
     const date = typeof val.toDate === "function" ? val.toDate() : new Date(val);
-    return dayjs(date).fromNow();
+    return dayjs(date).locale(locale).fromNow();
   } catch {
     return "—";
   }
 }
 
 function StatusChip({ value }) {
+  const { t } = useTranslation();
   const cfg = {
-    open:        { label: "Atidarytas", color: "warning" },
-    in_progress: { label: "Vykdoma",    color: "info"    },
-    resolved:    { label: "Išspręsta",  color: "success" },
+    open:        { key: "status.open",        color: "warning" },
+    in_progress: { key: "status.in_progress", color: "info"    },
+    resolved:    { key: "status.resolved",    color: "success" },
   };
-  const { label, color } = cfg[value] || { label: value, color: "default" };
-  return <Chip size="small" label={label} color={color} variant="outlined" />;
+  const c = cfg[value] || { key: value, color: "default" };
+  return <Chip size="small" label={t(c.key, c.key)} color={c.color} variant="outlined" />;
 }
 
 function PriorityChip({ value }) {
+  const { t } = useTranslation();
   const cfg = {
-    low:    { label: "Žemas",     color: "default" },
-    medium: { label: "Vidutinis", color: "info"    },
-    high:   { label: "Aukštas",   color: "error"   },
+    low:    { key: "priority.low",    color: "default" },
+    medium: { key: "priority.medium", color: "info"    },
+    high:   { key: "priority.high",   color: "error"   },
   };
-  const { label, color } = cfg[value] || { label: value, color: "default" };
-  return <Chip size="small" label={label} color={color} variant="outlined" />;
+  const c = cfg[value] || { key: value, color: "default" };
+  return <Chip size="small" label={t(c.key, c.key)} color={c.color} variant="outlined" />;
 }
 
-// ── KPI Card ──────────────────────────────────────────────────────────────────
 function KpiCard({ label, count, icon, accentColor, loading }) {
   return (
     <Paper
@@ -87,7 +88,6 @@ function KpiCard({ label, count, icon, accentColor, loading }) {
       >
         {icon}
       </Box>
-
       <Box>
         {loading ? (
           <Skeleton width={48} height={44} />
@@ -104,8 +104,10 @@ function KpiCard({ label, count, icon, accentColor, loading }) {
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === "lt" ? "lt" : "en";
+
   const [jobs, setJobs] = useState([]);
   const [sitesCount, setSitesCount] = useState(0);
   const [loadingJobs, setLoadingJobs] = useState(true);
@@ -150,56 +152,33 @@ export default function Dashboard() {
 
   return (
     <Box>
-      <PageHeader title="Skydelis" subtitle="Sistemos suvestinė" />
+      <PageHeader
+        title={t("pages.dashboard.title")}
+        subtitle={t("pages.dashboard.subtitle")}
+      />
 
-      {/* ── KPI Cards ── */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} lg={3}>
-          <KpiCard
-            label="Atidaryti darbai"
-            count={openCount}
-            icon={<AssignmentLateIcon fontSize="inherit" />}
-            accentColor="#f59e0b"
-            loading={loading}
-          />
+          <KpiCard label={t("pages.dashboard.kpi.open")} count={openCount} icon={<AssignmentLateIcon fontSize="inherit" />} accentColor="#f59e0b" loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
-          <KpiCard
-            label="Vykdoma"
-            count={inProgressCount}
-            icon={<SyncIcon fontSize="inherit" />}
-            accentColor="#3b82f6"
-            loading={loading}
-          />
+          <KpiCard label={t("pages.dashboard.kpi.inProgress")} count={inProgressCount} icon={<SyncIcon fontSize="inherit" />} accentColor="#3b82f6" loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
-          <KpiCard
-            label="Išspręsta"
-            count={resolvedCount}
-            icon={<CheckCircleOutlineIcon fontSize="inherit" />}
-            accentColor="#22c55e"
-            loading={loading}
-          />
+          <KpiCard label={t("pages.dashboard.kpi.resolved")} count={resolvedCount} icon={<CheckCircleOutlineIcon fontSize="inherit" />} accentColor="#22c55e" loading={loading} />
         </Grid>
         <Grid item xs={12} sm={6} lg={3}>
-          <KpiCard
-            label="Aktyvūs objektai"
-            count={sitesCount}
-            icon={<SolarPowerIcon fontSize="inherit" />}
-            accentColor="#a855f7"
-            loading={loading}
-          />
+          <KpiCard label={t("pages.dashboard.kpi.activeSites")} count={sitesCount} icon={<SolarPowerIcon fontSize="inherit" />} accentColor="#a855f7" loading={loading} />
         </Grid>
       </Grid>
 
-      {/* ── Recent Jobs ── */}
       <Paper variant="outlined" sx={{ borderRadius: 2 }}>
         <Box sx={{ px: 2.5, py: 1.8 }}>
           <Typography fontWeight={700} fontSize="0.95rem">
-            Naujausi darbai
+            {t("pages.dashboard.recentJobs")}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Paskutiniai {recentJobs.length} pridėtų darbų
+            {t("pages.dashboard.recentJobsCaption", { count: recentJobs.length })}
           </Typography>
         </Box>
         <Divider />
@@ -212,9 +191,7 @@ export default function Dashboard() {
           </Box>
         ) : recentJobs.length === 0 ? (
           <Box sx={{ p: 4, textAlign: "center" }}>
-            <Typography color="text.secondary">
-              Nėra darbų — pirmiausia sukurkite demo duomenis Nustatymuose.
-            </Typography>
+            <Typography color="text.secondary">{t("pages.dashboard.noJobs")}</Typography>
           </Box>
         ) : (
           <List disablePadding>
@@ -237,7 +214,7 @@ export default function Dashboard() {
                     }
                     secondary={
                       <Typography variant="caption" color="text.secondary">
-                        {job.siteName || "—"} · {formatAgo(job.createdAt)}
+                        {job.siteName || "—"} · {formatAgo(job.createdAt, locale)}
                       </Typography>
                     }
                   />

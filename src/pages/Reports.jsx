@@ -21,6 +21,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import {
@@ -31,7 +32,6 @@ import {
   MenuItem,
   Paper,
   Select,
-  Stack,
   Typography,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
@@ -43,18 +43,16 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/lt";
 
 dayjs.extend(relativeTime);
-dayjs.locale("lt");
-
-// ── Statusų konfigūracija ─────────────────────────────────────────────────────
-const STATUS_CFG = {
-  completed:             { label: "Atlikta",               color: "success" },
-  not_completed:         { label: "Neatlikta",             color: "error"   },
-  requires_maintenance:  { label: "Reikalinga priežiūra",  color: "warning" },
-};
 
 function StatusChip({ value }) {
-  const cfg = STATUS_CFG[value] || { label: value || "—", color: "default" };
-  return <Chip size="small" label={cfg.label} color={cfg.color} variant="outlined" />;
+  const { t } = useTranslation();
+  const cfg = {
+    completed:            { key: "status.completed",            color: "success" },
+    not_completed:        { key: "status.not_completed",        color: "error"   },
+    requires_maintenance: { key: "status.requires_maintenance", color: "warning" },
+  };
+  const c = cfg[value] || { key: value || "—", color: "default" };
+  return <Chip size="small" label={t(c.key, c.key)} color={c.color} variant="outlined" />;
 }
 
 function formatDate(val) {
@@ -65,36 +63,33 @@ function formatDate(val) {
   } catch { return "—"; }
 }
 
-// ── Tuščia būsena ─────────────────────────────────────────────────────────────
 function EmptyState() {
+  const { t } = useTranslation();
   return (
     <Box sx={{ p: 6, textAlign: "center" }}>
       <AssignmentIcon sx={{ fontSize: 56, color: "text.disabled", mb: 2 }} />
       <Typography variant="h6" fontWeight={700} color="text.secondary" sx={{ mb: 1 }}>
-        Ataskaitų dar nėra
+        {t("pages.reports.empty.title")}
       </Typography>
       <Typography variant="body2" color="text.disabled" sx={{ maxWidth: 420, mx: "auto" }}>
-        Kai technikas pateiks ataskaitą iš mobiliosios programėlės, ji atsiras čia.
-        Ataskaitos saugomos Firestore kolekcijoje <b>reports</b>.
+        {t("pages.reports.empty.desc")} <b>reports</b>.
       </Typography>
     </Box>
   );
 }
 
-// ── Puslapis ──────────────────────────────────────────────────────────────────
 export default function Reports() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [reports, setReports] = useState([]);
   const [sites, setSites] = useState([]);
   const [loadingReports, setLoadingReports] = useState(true);
 
-  // Filtrai
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [siteFilter, setSiteFilter] = useState("all");
 
-  // Prenumeruojame ataskaitas
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "reports"),
@@ -103,19 +98,18 @@ export default function Reports() {
         setLoadingReports(false);
       },
       (err) => {
-        console.error("Ataskaitų klaida:", err);
+        console.error("Reports error:", err);
         setLoadingReports(false);
       }
     );
     return () => unsub();
   }, []);
 
-  // Prenumeruojame objektus (filtrams)
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "sites"),
       (snap) => setSites(snap.docs.map((d) => ({ id: d.id, name: d.data().name }))),
-      (err) => console.error("Objektų klaida:", err)
+      (err) => console.error("Sites error:", err)
     );
     return () => unsub();
   }, []);
@@ -138,33 +132,33 @@ export default function Reports() {
   const columns = useMemo(() => [
     {
       field: "technicianName",
-      headerName: "Technikas",
+      headerName: t("pages.reports.col.technician"),
       width: 180,
       valueFormatter: (v) => v || "—",
     },
     {
       field: "jobTitle",
-      headerName: "Darbas",
+      headerName: t("pages.reports.col.job"),
       flex: 1,
       minWidth: 200,
       valueFormatter: (v) => v || "—",
     },
     {
       field: "siteName",
-      headerName: "Objektas",
+      headerName: t("pages.reports.col.site"),
       width: 180,
       valueFormatter: (v) => v || "—",
     },
     {
       field: "status",
-      headerName: "Statusas",
+      headerName: t("pages.reports.col.status"),
       width: 200,
       renderCell: (p) => <StatusChip value={p.value} />,
       sortable: false,
     },
     {
       field: "photoUrls",
-      headerName: "Nuotraukos",
+      headerName: t("pages.reports.col.photos"),
       width: 120,
       sortable: false,
       renderCell: (p) => {
@@ -172,7 +166,7 @@ export default function Reports() {
         return (
           <Chip
             size="small"
-            label={count > 0 ? `${count} nuotr.` : "—"}
+            label={count > 0 ? t("pages.reports.photosCount", { count }) : "—"}
             variant="outlined"
             color={count > 0 ? "info" : "default"}
           />
@@ -181,7 +175,7 @@ export default function Reports() {
     },
     {
       field: "submittedAt",
-      headerName: "Pateikta",
+      headerName: t("pages.reports.col.submitted"),
       width: 160,
       renderCell: (p) => (
         <Typography variant="body2" color="text.secondary">
@@ -189,7 +183,7 @@ export default function Reports() {
         </Typography>
       ),
     },
-  ], []);
+  ], [t]);
 
   const onReset = () => {
     setSearch("");
@@ -200,25 +194,25 @@ export default function Reports() {
   return (
     <Box>
       <PageHeader
-        title="Ataskaitos"
-        subtitle="Technikų pateiktos darbo ataskaitos iš mobiliojo"
+        title={t("pages.reports.title")}
+        subtitle={t("pages.reports.subtitle")}
       />
 
       <FilterBar search={search} onSearchChange={setSearch} onReset={onReset}>
         <FormControl size="small" sx={{ minWidth: 200 }}>
-          <InputLabel>Statusas</InputLabel>
-          <Select label="Statusas" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <MenuItem value="all">Visi</MenuItem>
-            <MenuItem value="completed">Atlikta</MenuItem>
-            <MenuItem value="not_completed">Neatlikta</MenuItem>
-            <MenuItem value="requires_maintenance">Reikalinga priežiūra</MenuItem>
+          <InputLabel>{t("pages.reports.filter.status")}</InputLabel>
+          <Select label={t("pages.reports.filter.status")} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <MenuItem value="all">{t("common.all")}</MenuItem>
+            <MenuItem value="completed">{t("status.completed")}</MenuItem>
+            <MenuItem value="not_completed">{t("status.not_completed")}</MenuItem>
+            <MenuItem value="requires_maintenance">{t("status.requires_maintenance")}</MenuItem>
           </Select>
         </FormControl>
 
         <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel>Objektas</InputLabel>
-          <Select label="Objektas" value={siteFilter} onChange={(e) => setSiteFilter(e.target.value)}>
-            <MenuItem value="all">Visi</MenuItem>
+          <InputLabel>{t("pages.reports.filter.site")}</InputLabel>
+          <Select label={t("pages.reports.filter.site")} value={siteFilter} onChange={(e) => setSiteFilter(e.target.value)}>
+            <MenuItem value="all">{t("common.all")}</MenuItem>
             {sites.map((s) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
           </Select>
         </FormControl>

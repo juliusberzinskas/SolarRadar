@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import {
   ref,
@@ -43,7 +44,8 @@ const REGIONS = ["Kaunas", "Vilnius", "Klaipėda", "Šiauliai", "Panevėžys", "
 const MOUNTING_TYPES = ["Stogo", "Žemės", "Plūduriuojantis", "Automobilių stoginė"];
 
 function StatusChip({ value }) {
-  const label = value === "active" ? "Aktyvus" : "Neaktyvus";
+  const { t } = useTranslation();
+  const label = t(value === "active" ? "status.active" : "status.inactive");
   const color = value === "active" ? "success" : "default";
   return <Chip size="small" label={label} color={color} variant="outlined" />;
 }
@@ -53,8 +55,8 @@ function TabPanel({ value, index, children }) {
   return <Box sx={{ pt: 3 }}>{children}</Box>;
 }
 
-// ── Informacijos skirtukas ────────────────────────────────────────────────────
 function InfoTab({ site, siteId }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -112,28 +114,28 @@ function InfoTab({ site, siteId }) {
     <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
       <Stack spacing={2.5}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <TextField label="Objekto pavadinimas" fullWidth {...f("name")} />
-          <TextField label="Adresas" fullWidth {...f("address")} />
+          <TextField label={t("pages.siteDetail.info.name")} fullWidth {...f("name")} />
+          <TextField label={t("pages.siteDetail.info.address")} fullWidth {...f("address")} />
         </Stack>
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
           <FormControl fullWidth>
-            <InputLabel>Regionas</InputLabel>
-            <Select label="Regionas" value={form.region} onChange={(e) => setForm((p) => ({ ...p, region: e.target.value }))}>
+            <InputLabel>{t("pages.siteDetail.info.region")}</InputLabel>
+            <Select label={t("pages.siteDetail.info.region")} value={form.region} onChange={(e) => setForm((p) => ({ ...p, region: e.target.value }))}>
               {REGIONS.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
             </Select>
           </FormControl>
           <FormControl fullWidth>
-            <InputLabel>Statusas</InputLabel>
-            <Select label="Statusas" value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
-              <MenuItem value="active">Aktyvus</MenuItem>
-              <MenuItem value="inactive">Neaktyvus</MenuItem>
+            <InputLabel>{t("pages.siteDetail.info.status")}</InputLabel>
+            <Select label={t("pages.siteDetail.info.status")} value={form.status} onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}>
+              <MenuItem value="active">{t("status.active")}</MenuItem>
+              <MenuItem value="inactive">{t("status.inactive")}</MenuItem>
             </Select>
           </FormControl>
         </Stack>
 
         <TextField
-          label="Galia (kW)"
+          label={t("pages.siteDetail.info.capacity")}
           type="number"
           inputProps={{ step: "0.1" }}
           fullWidth
@@ -141,12 +143,12 @@ function InfoTab({ site, siteId }) {
         />
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <TextField label="Platuma" type="number" inputProps={{ step: "0.0001" }} fullWidth {...f("lat")} />
-          <TextField label="Ilguma" type="number" inputProps={{ step: "0.0001" }} fullWidth {...f("lng")} />
+          <TextField label={t("pages.siteDetail.info.lat")} type="number" inputProps={{ step: "0.0001" }} fullWidth {...f("lat")} />
+          <TextField label={t("pages.siteDetail.info.lng")} type="number" inputProps={{ step: "0.0001" }} fullWidth {...f("lng")} />
         </Stack>
 
         {saveError && <Alert severity="error">{saveError}</Alert>}
-        {saved && <Alert severity="success">Sėkmingai išsaugota.</Alert>}
+        {saved && <Alert severity="success">{t("common.savedOk")}</Alert>}
 
         <Box>
           <Button
@@ -155,7 +157,7 @@ function InfoTab({ site, siteId }) {
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? "Saugoma..." : "Išsaugoti pakeitimus"}
+            {saving ? t("common.saving") : t("common.saveChanges")}
           </Button>
         </Box>
       </Stack>
@@ -163,8 +165,8 @@ function InfoTab({ site, siteId }) {
   );
 }
 
-// ── Žemėlapio skirtukas ───────────────────────────────────────────────────────
 function MapTab({ site }) {
+  const { t } = useTranslation();
   const lat = site?.location?.lat ?? site?.lat;
   const lng = site?.location?.lng ?? site?.lng;
   const hasCoords = lat != null && lng != null;
@@ -173,7 +175,7 @@ function MapTab({ site }) {
     return (
       <Paper variant="outlined" sx={{ p: 4, borderRadius: 2, textAlign: "center" }}>
         <Typography color="text.secondary">
-          Koordinatės dar neįvestos. Įveskite platumą ir ilgumą Informacijos skirtuke, kad matytumėte žemėlapį.
+          {t("pages.siteDetail.map.noCoords")}
         </Typography>
       </Paper>
     );
@@ -182,7 +184,7 @@ function MapTab({ site }) {
   return (
     <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
       <iframe
-        title="Objekto vieta"
+        title={t("pages.siteDetail.map.iframeTitle")}
         src={`https://maps.google.com/maps?q=${lat},${lng}&z=15&output=embed`}
         width="100%"
         height="480"
@@ -195,8 +197,8 @@ function MapTab({ site }) {
   );
 }
 
-// ── Montavimo sistemos skirtukas ──────────────────────────────────────────────
 function MountingTab({ site, siteId }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -248,22 +250,22 @@ function MountingTab({ site, siteId }) {
     <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
       <Stack spacing={2.5}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <TextField label="Saulės kolektoriaus tipas" placeholder="pvz. Monokristalinis 400W" fullWidth {...f("panelType")} />
-          <TextField label="Kolektorių skaičius" type="number" inputProps={{ min: 1 }} fullWidth {...f("panelCount")} />
+          <TextField label={t("pages.siteDetail.mounting.panelType")} placeholder={t("pages.siteDetail.mounting.panelTypePlaceholder")} fullWidth {...f("panelType")} />
+          <TextField label={t("pages.siteDetail.mounting.panelCount")} type="number" inputProps={{ min: 1 }} fullWidth {...f("panelCount")} />
         </Stack>
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          <TextField label="Inverterio modelis" fullWidth {...f("inverterModel")} />
+          <TextField label={t("pages.siteDetail.mounting.inverterModel")} fullWidth {...f("inverterModel")} />
           <FormControl fullWidth>
-            <InputLabel>Montavimo tipas</InputLabel>
-            <Select label="Montavimo tipas" value={form.mountingType} onChange={(e) => setForm((p) => ({ ...p, mountingType: e.target.value }))}>
-              {MOUNTING_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+            <InputLabel>{t("pages.siteDetail.mounting.mountingType")}</InputLabel>
+            <Select label={t("pages.siteDetail.mounting.mountingType")} value={form.mountingType} onChange={(e) => setForm((p) => ({ ...p, mountingType: e.target.value }))}>
+              {MOUNTING_TYPES.map((mt) => <MenuItem key={mt} value={mt}>{mt}</MenuItem>)}
             </Select>
           </FormControl>
         </Stack>
 
         <TextField
-          label="Įrengimo data"
+          label={t("pages.siteDetail.mounting.installDate")}
           type="date"
           fullWidth
           InputLabelProps={{ shrink: true }}
@@ -271,7 +273,7 @@ function MountingTab({ site, siteId }) {
         />
 
         {saveError && <Alert severity="error">{saveError}</Alert>}
-        {saved && <Alert severity="success">Sėkmingai išsaugota.</Alert>}
+        {saved && <Alert severity="success">{t("common.savedOk")}</Alert>}
 
         <Box>
           <Button
@@ -280,7 +282,7 @@ function MountingTab({ site, siteId }) {
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? "Saugoma..." : "Išsaugoti pakeitimus"}
+            {saving ? t("common.saving") : t("common.saveChanges")}
           </Button>
         </Box>
       </Stack>
@@ -288,8 +290,8 @@ function MountingTab({ site, siteId }) {
   );
 }
 
-// ── Nuotraukų skirtukas ───────────────────────────────────────────────────────
 function PhotosTab({ siteId }) {
+  const { t } = useTranslation();
   const [photos, setPhotos] = useState([]);
   const [loadingPhotos, setLoadingPhotos] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -311,7 +313,7 @@ function PhotosTab({ siteId }) {
       );
       setPhotos(urls);
     } catch (e) {
-      console.error("Klaida įkeliant nuotraukas:", e);
+      console.error("Error loading photos:", e);
     } finally {
       setLoadingPhotos(false);
     }
@@ -360,15 +362,19 @@ function PhotosTab({ siteId }) {
       await deleteObject(photo.ref);
       setPhotos((prev) => prev.filter((p) => p.name !== photo.name));
     } catch (e) {
-      console.error("Klaida trinant nuotrauką:", e);
+      console.error("Error deleting photo:", e);
     }
   };
+
+  const countLabel = photos.length === 1
+    ? `1 ${t("pages.siteDetail.photos.countSingular")}`
+    : `${photos.length} ${t("pages.siteDetail.photos.countPlural")}`;
 
   return (
     <Box>
       <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
         <Typography variant="body2" color="text.secondary">
-          {photos.length} {photos.length === 1 ? "nuotrauka" : "nuotraukos"}
+          {countLabel}
         </Typography>
         <Button
           variant="outlined"
@@ -376,7 +382,7 @@ function PhotosTab({ siteId }) {
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
         >
-          Įkelti nuotraukas
+          {t("pages.siteDetail.photos.upload")}
         </Button>
         <input
           ref={fileInputRef}
@@ -392,7 +398,7 @@ function PhotosTab({ siteId }) {
         <Box sx={{ mb: 2 }}>
           <LinearProgress variant="determinate" value={uploadProgress} />
           <Typography variant="caption" color="text.secondary">
-            Įkeliama... {uploadProgress}%
+            {t("pages.siteDetail.photos.uploading", { pct: uploadProgress })}
           </Typography>
         </Box>
       )}
@@ -409,7 +415,7 @@ function PhotosTab({ siteId }) {
         </Grid>
       ) : photos.length === 0 ? (
         <Paper variant="outlined" sx={{ p: 4, borderRadius: 2, textAlign: "center" }}>
-          <Typography color="text.secondary">Nuotraukų dar nėra.</Typography>
+          <Typography color="text.secondary">{t("pages.siteDetail.photos.none")}</Typography>
         </Paper>
       ) : (
         <ImageList cols={4} gap={12} sx={{ mt: 0 }}>
@@ -423,7 +429,7 @@ function PhotosTab({ siteId }) {
               />
               <ImageListItemBar
                 actionIcon={
-                  <Tooltip title="Ištrinti">
+                  <Tooltip title={t("pages.siteDetail.photos.delete")}>
                     <IconButton
                       size="small"
                       sx={{ color: "rgba(255,255,255,0.8)" }}
@@ -445,10 +451,10 @@ function PhotosTab({ siteId }) {
   );
 }
 
-// ── Puslapis ──────────────────────────────────────────────────────────────────
 export default function SiteDetail() {
   const { siteId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [site, setSite] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState(0);
@@ -461,7 +467,7 @@ export default function SiteDetail() {
         setLoading(false);
       },
       (err) => {
-        console.error("SiteDetail klaida:", err);
+        console.error("SiteDetail error:", err);
         setLoading(false);
       }
     );
@@ -481,23 +487,22 @@ export default function SiteDetail() {
     return (
       <Box>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/sites")}>
-          Objektai
+          {t("pages.siteDetail.backBtn")}
         </Button>
-        <Alert severity="error" sx={{ mt: 2 }}>Objektas nerastas.</Alert>
+        <Alert severity="error" sx={{ mt: 2 }}>{t("pages.siteDetail.notFound")}</Alert>
       </Box>
     );
   }
 
   return (
     <Box>
-      {/* Antraštė */}
       <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 2 }}>
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate("/sites")}
           sx={{ flexShrink: 0 }}
         >
-          Objektai
+          {t("pages.siteDetail.backBtn")}
         </Button>
         <Typography variant="h5" fontWeight={800} sx={{ flex: 1 }} noWrap>
           {site.name}
@@ -505,17 +510,16 @@ export default function SiteDetail() {
         <StatusChip value={site.status} />
       </Stack>
 
-      {/* Skirtukai */}
       <Paper variant="outlined" sx={{ borderRadius: 2, mb: 3 }}>
         <Tabs
           value={tab}
           onChange={(_, v) => setTab(v)}
           sx={{ px: 2, borderBottom: 1, borderColor: "divider" }}
         >
-          <Tab label="Informacija" />
-          <Tab label="Žemėlapis" />
-          <Tab label="Montavimo sistema" />
-          <Tab label="Nuotraukos" />
+          <Tab label={t("pages.siteDetail.tabs.info")} />
+          <Tab label={t("pages.siteDetail.tabs.map")} />
+          <Tab label={t("pages.siteDetail.tabs.mounting")} />
+          <Tab label={t("pages.siteDetail.tabs.photos")} />
         </Tabs>
 
         <Box sx={{ p: 3 }}>

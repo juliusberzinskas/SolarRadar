@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   collection,
   onSnapshot,
@@ -43,29 +44,27 @@ const emptyForm = () => ({
 });
 
 function StatusChip({ value }) {
-  const label = value === "active" ? "Aktyvus" : "Neaktyvus";
+  const { t } = useTranslation();
+  const label = t(value === "active" ? "status.active" : "status.inactive");
   const color = value === "active" ? "success" : "default";
   return <Chip size="small" label={label} color={color} variant="outlined" />;
 }
 
 export default function Sites() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
-  // Firestore data
   const [sites, setSites] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
 
-  // Filters
   const [search, setSearch] = useState("");
   const [region, setRegion] = useState("all");
   const [status, setStatus] = useState("all");
 
-  // Dialogs
   const [openCreate, setOpenCreate] = useState(false);
   const [form, setForm] = useState(emptyForm());
   const [saveError, setSaveError] = useState("");
 
-  // Subscribe to sites collection
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "sites"),
@@ -88,10 +87,8 @@ export default function Sites() {
         !q ||
         (r.name || "").toLowerCase().includes(q) ||
         (r.address || "").toLowerCase().includes(q);
-
       const matchesRegion = region === "all" ? true : r.region === region;
       const matchesStatus = status === "all" ? true : r.status === status;
-
       return matchesSearch && matchesRegion && matchesStatus;
     });
   }, [sites, search, region, status]);
@@ -99,30 +96,30 @@ export default function Sites() {
   const columns = useMemo(
     () => [
       { field: "id", headerName: "ID", width: 140 },
-      { field: "name", headerName: "Pavadinimas", flex: 1, minWidth: 200 },
-      { field: "address", headerName: "Adresas", flex: 1, minWidth: 200 },
-      { field: "region", headerName: "Regionas", width: 130 },
+      { field: "name", headerName: t("pages.sites.col.name"), flex: 1, minWidth: 200 },
+      { field: "address", headerName: t("pages.sites.col.address"), flex: 1, minWidth: 200 },
+      { field: "region", headerName: t("pages.sites.col.region"), width: 130 },
       {
         field: "status",
-        headerName: "Statusas",
+        headerName: t("pages.sites.col.status"),
         width: 120,
         renderCell: (params) => <StatusChip value={params.value} />,
         sortable: false,
       },
       {
         field: "capacityKw",
-        headerName: "kW",
+        headerName: t("pages.sites.col.capacity"),
         width: 110,
         valueFormatter: (value) => (value != null ? `${value} kW` : "—"),
       },
       {
         field: "updatedAt",
-        headerName: "Atnaujinta",
+        headerName: t("pages.sites.col.updated"),
         width: 130,
         valueFormatter: (value) => value || "—",
       },
     ],
-    []
+    [t]
   );
 
   const onReset = () => {
@@ -164,61 +161,54 @@ export default function Sites() {
     }
   };
 
-  // Form fields used in Create dialog
   const FormFields = (
     <Stack spacing={2} sx={{ mt: 1 }}>
       <TextField
-        label="Objekto pavadinimas"
+        label={t("pages.sites.form.name")}
         value={form.name}
         onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
         fullWidth
       />
       <TextField
-        label="Adresas"
+        label={t("pages.sites.form.address")}
         value={form.address}
         onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))}
         fullWidth
       />
-
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
         <FormControl fullWidth>
-          <InputLabel>Regionas</InputLabel>
+          <InputLabel>{t("pages.sites.form.region")}</InputLabel>
           <Select
-            label="Regionas"
+            label={t("pages.sites.form.region")}
             value={form.region}
             onChange={(e) => setForm((p) => ({ ...p, region: e.target.value }))}
           >
-            {REGIONS.map((r) => (
-              <MenuItem key={r} value={r}>{r}</MenuItem>
-            ))}
+            {REGIONS.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
           </Select>
         </FormControl>
-
         <FormControl fullWidth>
-          <InputLabel>Statusas</InputLabel>
+          <InputLabel>{t("pages.sites.form.status")}</InputLabel>
           <Select
-            label="Statusas"
+            label={t("pages.sites.form.status")}
             value={form.status}
             onChange={(e) => setForm((p) => ({ ...p, status: e.target.value }))}
           >
-            <MenuItem value="active">Aktyvus</MenuItem>
-            <MenuItem value="inactive">Neaktyvus</MenuItem>
+            <MenuItem value="active">{t("status.active")}</MenuItem>
+            <MenuItem value="inactive">{t("status.inactive")}</MenuItem>
           </Select>
         </FormControl>
       </Stack>
-
       <TextField
-        label="Galia (kW)"
+        label={t("pages.sites.form.capacity")}
         value={form.capacityKw}
         onChange={(e) => setForm((p) => ({ ...p, capacityKw: e.target.value }))}
         fullWidth
         type="number"
         inputProps={{ step: "0.1" }}
       />
-
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
         <TextField
-          label="Platuma"
+          label={t("pages.sites.form.lat")}
           value={form.lat}
           onChange={(e) => setForm((p) => ({ ...p, lat: e.target.value }))}
           fullWidth
@@ -226,7 +216,7 @@ export default function Sites() {
           inputProps={{ step: "0.0001" }}
         />
         <TextField
-          label="Ilguma"
+          label={t("pages.sites.form.lng")}
           value={form.lng}
           onChange={(e) => setForm((p) => ({ ...p, lng: e.target.value }))}
           fullWidth
@@ -240,10 +230,10 @@ export default function Sites() {
   return (
     <Box>
       <PageHeader
-        title="Objektai"
-        subtitle="Objektų registravimas ir lokacijų valdymas"
+        title={t("pages.sites.title")}
+        subtitle={t("pages.sites.subtitle")}
         primaryAction={{
-          label: "Pridėti objektą",
+          label: t("pages.sites.add"),
           icon: <AddIcon />,
           onClick: openCreateDialog,
         }}
@@ -256,21 +246,19 @@ export default function Sites() {
 
       <FilterBar search={search} onSearchChange={setSearch} onReset={onReset}>
         <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel>Regionas</InputLabel>
-          <Select label="Regionas" value={region} onChange={(e) => setRegion(e.target.value)}>
-            <MenuItem value="all">Visi</MenuItem>
-            {REGIONS.map((r) => (
-              <MenuItem key={r} value={r}>{r}</MenuItem>
-            ))}
+          <InputLabel>{t("pages.sites.filter.region")}</InputLabel>
+          <Select label={t("pages.sites.filter.region")} value={region} onChange={(e) => setRegion(e.target.value)}>
+            <MenuItem value="all">{t("common.all")}</MenuItem>
+            {REGIONS.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
           </Select>
         </FormControl>
 
         <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel>Statusas</InputLabel>
-          <Select label="Statusas" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <MenuItem value="all">Visi</MenuItem>
-            <MenuItem value="active">Aktyvus</MenuItem>
-            <MenuItem value="inactive">Neaktyvus</MenuItem>
+          <InputLabel>{t("pages.sites.filter.status")}</InputLabel>
+          <Select label={t("pages.sites.filter.status")} value={status} onChange={(e) => setStatus(e.target.value)}>
+            <MenuItem value="all">{t("common.all")}</MenuItem>
+            <MenuItem value="active">{t("status.active")}</MenuItem>
+            <MenuItem value="inactive">{t("status.inactive")}</MenuItem>
           </Select>
         </FormControl>
       </FilterBar>
@@ -291,19 +279,17 @@ export default function Sites() {
         </Box>
       </Paper>
 
-      {/* Create Dialog */}
       <Dialog open={openCreate} onClose={() => setOpenCreate(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Pridėti objektą</DialogTitle>
+        <DialogTitle>{t("pages.sites.dialog.add")}</DialogTitle>
         <DialogContent>
           {FormFields}
           {saveError && <Alert severity="error" sx={{ mt: 2 }}>{saveError}</Alert>}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setOpenCreate(false)}>Atšaukti</Button>
-          <Button variant="contained" onClick={handleCreate}>Išsaugoti</Button>
+          <Button onClick={() => setOpenCreate(false)}>{t("common.cancel")}</Button>
+          <Button variant="contained" onClick={handleCreate}>{t("common.save")}</Button>
         </DialogActions>
       </Dialog>
-
     </Box>
   );
 }

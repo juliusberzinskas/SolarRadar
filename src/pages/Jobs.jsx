@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   collection,
   onSnapshot,
@@ -29,32 +30,34 @@ import AddIcon from "@mui/icons-material/Add";
 import PageHeader from "../components/PageHeader";
 import FilterBar from "../components/FilterBar";
 
-const TYPE_LABELS = {
-  inverter_fault: "Inverterio gedimas",
-  communication:  "Ryšio problema",
-  string_issue:   "Grandinės problema",
-  inspection:     "Patikrinimas",
-  maintenance:    "Priežiūra",
-};
+const JOB_TYPE_KEYS = [
+  "inverter_fault",
+  "communication",
+  "string_issue",
+  "inspection",
+  "maintenance",
+];
 
 function StatusChip({ value }) {
+  const { t } = useTranslation();
   const map = {
-    open:        { label: "Atidarytas", color: "warning" },
-    in_progress: { label: "Vykdoma",    color: "info"    },
-    resolved:    { label: "Išspręsta",  color: "success" },
+    open:        { key: "status.open",        color: "warning" },
+    in_progress: { key: "status.in_progress", color: "info"    },
+    resolved:    { key: "status.resolved",    color: "success" },
   };
-  const m = map[value] || { label: value, color: "default" };
-  return <Chip size="small" label={m.label} color={m.color} variant="outlined" />;
+  const m = map[value] || { key: value, color: "default" };
+  return <Chip size="small" label={t(m.key, m.key)} color={m.color} variant="outlined" />;
 }
 
 function PriorityChip({ value }) {
+  const { t } = useTranslation();
   const map = {
-    low:    { label: "Žemas",     color: "default" },
-    medium: { label: "Vidutinis", color: "info"    },
-    high:   { label: "Aukštas",   color: "error"   },
+    low:    { key: "priority.low",    color: "default" },
+    medium: { key: "priority.medium", color: "info"    },
+    high:   { key: "priority.high",   color: "error"   },
   };
-  const m = map[value] || { label: value, color: "default" };
-  return <Chip size="small" label={m.label} color={m.color} variant="outlined" />;
+  const m = map[value] || { key: value, color: "default" };
+  return <Chip size="small" label={t(m.key, m.key)} color={m.color} variant="outlined" />;
 }
 
 const emptyCreateForm = () => ({
@@ -68,26 +71,23 @@ const emptyCreateForm = () => ({
 
 export default function Jobs() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
-  // Firestore duomenys
   const [jobs, setJobs] = useState([]);
   const [sites, setSites] = useState([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
 
-  // Filtrai
   const [search, setSearch] = useState("");
   const [siteFilter, setSiteFilter] = useState("all");
   const [status, setStatus] = useState("all");
   const [priority, setPriority] = useState("all");
   const [assigned, setAssigned] = useState("all");
 
-  // Sukūrimo dialogas
   const [openCreate, setOpenCreate] = useState(false);
   const [createForm, setCreateForm] = useState(emptyCreateForm());
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
 
-  // Prenumeruojame darbus
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "jobs"),
@@ -95,17 +95,16 @@ export default function Jobs() {
         setJobs(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
         setLoadingJobs(false);
       },
-      (err) => { console.error("Darbų klaida:", err); setLoadingJobs(false); }
+      (err) => { console.error("Jobs error:", err); setLoadingJobs(false); }
     );
     return () => unsub();
   }, []);
 
-  // Prenumeruojame objektus (filtrams + formai)
   useEffect(() => {
     const unsub = onSnapshot(
       collection(db, "sites"),
       (snap) => setSites(snap.docs.map((d) => ({ id: d.id, name: d.data().name }))),
-      (err) => console.error("Objektų klaida:", err)
+      (err) => console.error("Sites error:", err)
     );
     return () => unsub();
   }, []);
@@ -122,8 +121,8 @@ export default function Jobs() {
       const matchesStatus   = status === "all"     || r.status === status;
       const matchesPriority = priority === "all"   || r.priority === priority;
       const matchesAssigned =
-        assigned === "all"       ? true
-        : assigned === "assigned"  ? !!r.assignedTo
+        assigned === "all"      ? true
+        : assigned === "assigned" ? !!r.assignedTo
         : !r.assignedTo;
       return matchesSearch && matchesSite && matchesStatus && matchesPriority && matchesAssigned;
     });
@@ -131,36 +130,36 @@ export default function Jobs() {
 
   const columns = useMemo(() => [
     { field: "id", headerName: "ID", width: 120 },
-    { field: "title", headerName: "Pavadinimas", flex: 1, minWidth: 220 },
-    { field: "siteName", headerName: "Objektas", width: 200, valueFormatter: (v) => v || "—" },
+    { field: "title", headerName: t("pages.jobs.col.name"), flex: 1, minWidth: 220 },
+    { field: "siteName", headerName: t("pages.jobs.col.site"), width: 200, valueFormatter: (v) => v || "—" },
     {
       field: "type",
-      headerName: "Tipas",
+      headerName: t("pages.jobs.col.type"),
       width: 180,
-      valueGetter: (value) => TYPE_LABELS[value] || value || "—",
+      valueGetter: (value) => t(`jobType.${value}`, value || "—"),
     },
     {
       field: "priority",
-      headerName: "Prioritetas",
+      headerName: t("pages.jobs.col.priority"),
       width: 120,
       renderCell: (p) => <PriorityChip value={p.value} />,
       sortable: false,
     },
     {
       field: "status",
-      headerName: "Statusas",
+      headerName: t("pages.jobs.col.status"),
       width: 140,
       renderCell: (p) => <StatusChip value={p.value} />,
       sortable: false,
     },
     {
       field: "assignedName",
-      headerName: "Atsakingas",
+      headerName: t("pages.jobs.col.assigned"),
       width: 160,
       valueFormatter: (value) => value || "—",
     },
-    { field: "updatedAt", headerName: "Atnaujinta", width: 130, valueFormatter: (v) => v || "—" },
-  ], []);
+    { field: "updatedAt", headerName: t("pages.jobs.col.updated"), width: 130, valueFormatter: (v) => v || "—" },
+  ], [t]);
 
   const onReset = () => {
     setSearch("");
@@ -192,7 +191,7 @@ export default function Jobs() {
       setOpenCreate(false);
       setCreateForm(emptyCreateForm());
     } catch (e) {
-      console.error("Darbo sukūrimo klaida:", e);
+      console.error("Job create error:", e);
       setCreateError(e.message);
     } finally {
       setCreating(false);
@@ -202,10 +201,10 @@ export default function Jobs() {
   return (
     <Box>
       <PageHeader
-        title="Darbai"
-        subtitle="Gedimų ir techninių darbų valdymas"
+        title={t("pages.jobs.title")}
+        subtitle={t("pages.jobs.subtitle")}
         primaryAction={{
-          label: "Sukurti darbą",
+          label: t("pages.jobs.create"),
           icon: <AddIcon />,
           onClick: () => { setCreateForm(emptyCreateForm()); setCreateError(""); setOpenCreate(true); },
         }}
@@ -213,39 +212,39 @@ export default function Jobs() {
 
       <FilterBar search={search} onSearchChange={setSearch} onReset={onReset}>
         <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel>Objektas</InputLabel>
-          <Select label="Objektas" value={siteFilter} onChange={(e) => setSiteFilter(e.target.value)}>
-            <MenuItem value="all">Visi</MenuItem>
+          <InputLabel>{t("pages.jobs.filter.site")}</InputLabel>
+          <Select label={t("pages.jobs.filter.site")} value={siteFilter} onChange={(e) => setSiteFilter(e.target.value)}>
+            <MenuItem value="all">{t("common.all")}</MenuItem>
             {sites.map((s) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
           </Select>
         </FormControl>
 
         <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel>Statusas</InputLabel>
-          <Select label="Statusas" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <MenuItem value="all">Visi</MenuItem>
-            <MenuItem value="open">Atidarytas</MenuItem>
-            <MenuItem value="in_progress">Vykdoma</MenuItem>
-            <MenuItem value="resolved">Išspręsta</MenuItem>
+          <InputLabel>{t("pages.jobs.filter.status")}</InputLabel>
+          <Select label={t("pages.jobs.filter.status")} value={status} onChange={(e) => setStatus(e.target.value)}>
+            <MenuItem value="all">{t("common.all")}</MenuItem>
+            <MenuItem value="open">{t("status.open")}</MenuItem>
+            <MenuItem value="in_progress">{t("status.in_progress")}</MenuItem>
+            <MenuItem value="resolved">{t("status.resolved")}</MenuItem>
           </Select>
         </FormControl>
 
         <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel>Prioritetas</InputLabel>
-          <Select label="Prioritetas" value={priority} onChange={(e) => setPriority(e.target.value)}>
-            <MenuItem value="all">Visi</MenuItem>
-            <MenuItem value="low">Žemas</MenuItem>
-            <MenuItem value="medium">Vidutinis</MenuItem>
-            <MenuItem value="high">Aukštas</MenuItem>
+          <InputLabel>{t("pages.jobs.filter.priority")}</InputLabel>
+          <Select label={t("pages.jobs.filter.priority")} value={priority} onChange={(e) => setPriority(e.target.value)}>
+            <MenuItem value="all">{t("common.all")}</MenuItem>
+            <MenuItem value="low">{t("priority.low")}</MenuItem>
+            <MenuItem value="medium">{t("priority.medium")}</MenuItem>
+            <MenuItem value="high">{t("priority.high")}</MenuItem>
           </Select>
         </FormControl>
 
         <FormControl size="small" sx={{ minWidth: 170 }}>
-          <InputLabel>Priskyrimas</InputLabel>
-          <Select label="Priskyrimas" value={assigned} onChange={(e) => setAssigned(e.target.value)}>
-            <MenuItem value="all">Visi</MenuItem>
-            <MenuItem value="assigned">Priskirtas</MenuItem>
-            <MenuItem value="unassigned">Nepriskirtas</MenuItem>
+          <InputLabel>{t("pages.jobs.filter.assignment")}</InputLabel>
+          <Select label={t("pages.jobs.filter.assignment")} value={assigned} onChange={(e) => setAssigned(e.target.value)}>
+            <MenuItem value="all">{t("common.all")}</MenuItem>
+            <MenuItem value="assigned">{t("pages.jobs.filter.assigned")}</MenuItem>
+            <MenuItem value="unassigned">{t("pages.jobs.filter.unassigned")}</MenuItem>
           </Select>
         </FormControl>
       </FilterBar>
@@ -267,13 +266,12 @@ export default function Jobs() {
         </Box>
       </Paper>
 
-      {/* Darbo sukūrimo dialogas */}
       <Dialog open={openCreate} onClose={() => setOpenCreate(false)} fullWidth maxWidth="sm">
-        <DialogTitle>Sukurti darbą</DialogTitle>
+        <DialogTitle>{t("pages.jobs.dialog.title")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             <TextField
-              label="Pavadinimas"
+              label={t("pages.jobs.form.title")}
               value={createForm.title}
               onChange={(e) => setCreateForm((p) => ({ ...p, title: e.target.value }))}
               fullWidth
@@ -281,48 +279,48 @@ export default function Jobs() {
             />
 
             <FormControl fullWidth>
-              <InputLabel>Objektas</InputLabel>
+              <InputLabel>{t("pages.jobs.form.site")}</InputLabel>
               <Select
-                label="Objektas"
+                label={t("pages.jobs.form.site")}
                 value={createForm.siteId}
                 onChange={(e) => setCreateForm((p) => ({ ...p, siteId: e.target.value }))}
               >
-                <MenuItem value="">— Nėra —</MenuItem>
+                <MenuItem value="">{t("pages.jobs.form.noSite")}</MenuItem>
                 {sites.map((s) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
               </Select>
             </FormControl>
 
             <FormControl fullWidth>
-              <InputLabel>Tipas</InputLabel>
+              <InputLabel>{t("pages.jobs.form.type")}</InputLabel>
               <Select
-                label="Tipas"
+                label={t("pages.jobs.form.type")}
                 value={createForm.type}
                 onChange={(e) => setCreateForm((p) => ({ ...p, type: e.target.value }))}
               >
-                {Object.entries(TYPE_LABELS).map(([k, v]) => (
-                  <MenuItem key={k} value={k}>{v}</MenuItem>
+                {JOB_TYPE_KEYS.map((k) => (
+                  <MenuItem key={k} value={k}>{t(`jobType.${k}`)}</MenuItem>
                 ))}
               </Select>
             </FormControl>
 
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <FormControl fullWidth>
-                <InputLabel>Prioritetas</InputLabel>
+                <InputLabel>{t("pages.jobs.form.priority")}</InputLabel>
                 <Select
-                  label="Prioritetas"
+                  label={t("pages.jobs.form.priority")}
                   value={createForm.priority}
                   onChange={(e) => setCreateForm((p) => ({ ...p, priority: e.target.value }))}
                 >
-                  <MenuItem value="low">Žemas</MenuItem>
-                  <MenuItem value="medium">Vidutinis</MenuItem>
-                  <MenuItem value="high">Aukštas</MenuItem>
+                  <MenuItem value="low">{t("priority.low")}</MenuItem>
+                  <MenuItem value="medium">{t("priority.medium")}</MenuItem>
+                  <MenuItem value="high">{t("priority.high")}</MenuItem>
                 </Select>
               </FormControl>
 
               <FormControl fullWidth>
-                <InputLabel>Reikalingas lygis</InputLabel>
+                <InputLabel>{t("pages.jobs.form.reqLevel")}</InputLabel>
                 <Select
-                  label="Reikalingas lygis"
+                  label={t("pages.jobs.form.reqLevel")}
                   value={createForm.requiredLevel}
                   onChange={(e) => setCreateForm((p) => ({ ...p, requiredLevel: Number(e.target.value) }))}
                 >
@@ -332,7 +330,7 @@ export default function Jobs() {
             </Stack>
 
             <TextField
-              label="Aprašymas"
+              label={t("pages.jobs.form.description")}
               value={createForm.description}
               onChange={(e) => setCreateForm((p) => ({ ...p, description: e.target.value }))}
               multiline
@@ -345,13 +343,13 @@ export default function Jobs() {
         </DialogContent>
 
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setOpenCreate(false)}>Atšaukti</Button>
+          <Button onClick={() => setOpenCreate(false)}>{t("common.cancel")}</Button>
           <Button
             variant="contained"
             onClick={handleCreate}
             disabled={creating || !createForm.title}
           >
-            {creating ? "Kuriama..." : "Sukurti"}
+            {creating ? t("pages.jobs.creating") : t("pages.jobs.create")}
           </Button>
         </DialogActions>
       </Dialog>

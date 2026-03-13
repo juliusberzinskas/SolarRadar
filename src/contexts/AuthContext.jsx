@@ -8,6 +8,7 @@ const AuthContext = createContext({
   profile: null,
   loading: true,
   isAdmin: false,
+  isSuperAdmin: false,
 });
 
 export function AuthProvider({ children }) {
@@ -47,7 +48,8 @@ export function AuthProvider({ children }) {
       user: firebaseUser,
       profile,
       loading,
-      isAdmin: profile?.role === "admin",
+      isAdmin: profile?.role === "admin" || profile?.role === "superadmin",
+      isSuperAdmin: profile?.role === "superadmin",
     }),
     [firebaseUser, profile, loading]
   );
@@ -58,7 +60,7 @@ export function AuthProvider({ children }) {
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) {
-    return { user: null, profile: null, loading: true, isAdmin: false };
+    return { user: null, profile: null, loading: true, isAdmin: false, isSuperAdmin: false };
   }
   return ctx;
 }

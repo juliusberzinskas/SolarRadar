@@ -33,10 +33,9 @@ export default function Settings() {
   const { user } = useAuth();
   const [lang, setLang] = useState(i18n.language || "en");
 
-  // Seed state
   const [seedDialogOpen, setSeedDialogOpen] = useState(false);
   const [seeding, setSeeding] = useState(false);
-  const [seedMsg, setSeedMsg] = useState(null); // { type: "success"|"error", text: string }
+  const [seedMsg, setSeedMsg] = useState(null);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -82,8 +81,8 @@ export default function Settings() {
   return (
     <Box>
       <PageHeader
-        title={t("menu.settings")}
-        subtitle="Sistemos nustatymai (kalba, profilis ir kt.)"
+        title={t("pages.settings.title")}
+        subtitle={t("pages.settings.subtitle")}
       />
 
       <Stack spacing={2}>
@@ -91,13 +90,13 @@ export default function Settings() {
         <Card variant="outlined" sx={{ borderRadius: 2 }}>
           <CardContent>
             <Typography fontWeight={800} sx={{ mb: 1 }}>
-              Kalba / Language
+              {t("pages.settings.lang.title")}
             </Typography>
 
             <FormControl size="small" sx={{ minWidth: 240 }}>
-              <InputLabel>Pasirinkti kalbą</InputLabel>
+              <InputLabel>{t("pages.settings.lang.choose")}</InputLabel>
               <Select
-                label="Pasirinkti kalbą"
+                label={t("pages.settings.lang.choose")}
                 value={lang}
                 onChange={(e) => onChangeLang(e.target.value)}
               >
@@ -110,8 +109,7 @@ export default function Settings() {
             </FormControl>
 
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
-              Pasirinkimas išsaugomas naršyklėje (localStorage) ir bus pritaikomas
-              kitą kartą atidarius puslapį.
+              {t("pages.settings.lang.note")}
             </Typography>
           </CardContent>
         </Card>
@@ -120,11 +118,11 @@ export default function Settings() {
         <Card variant="outlined" sx={{ borderRadius: 2 }}>
           <CardContent>
             <Typography fontWeight={800} sx={{ mb: 1 }}>
-              Paskyra
+              {t("pages.settings.account.title")}
             </Typography>
 
             <Typography variant="body2" color="text.secondary">
-              Čia vėliau galėsi rodyti admin el. paštą ir kitą profilio informaciją.
+              {t("pages.settings.account.desc")}
             </Typography>
 
             <Divider sx={{ my: 2 }} />
@@ -139,11 +137,10 @@ export default function Settings() {
         <Card variant="outlined" sx={{ borderRadius: 2 }}>
           <CardContent>
             <Typography fontWeight={800} sx={{ mb: 0.5 }}>
-              Demo duomenys
+              {t("pages.settings.demo.title")}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Užpildo Firestore demonstraciniais duomenimis: 5 technikais, 4 objektais
-              ir 8 darbais. Galima paleisti kelis kartus — perrašo esamus įrašus.
+              {t("pages.settings.demo.desc")}
             </Typography>
 
             {seedMsg && (
@@ -158,24 +155,22 @@ export default function Settings() {
               disabled={seeding}
               startIcon={seeding ? <CircularProgress size={16} /> : null}
             >
-              {seeding ? "Įkeliama..." : "Įkelti demo duomenis"}
+              {seeding ? t("pages.settings.demo.loading") : t("pages.settings.demo.load")}
             </Button>
           </CardContent>
         </Card>
       </Stack>
 
-      {/* Confirmation dialog */}
       <Dialog open={seedDialogOpen} onClose={() => setSeedDialogOpen(false)}>
-        <DialogTitle>Įkelti demo duomenis?</DialogTitle>
+        <DialogTitle>{t("pages.settings.demo.confirmTitle")}</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Tai įrašys į Firestore 5 technikus, 4 objektus ir 8 darbus.
-            Esami įrašai su tais pačiais ID bus perrašyti.
+            {t("pages.settings.demo.confirmDesc")}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setSeedDialogOpen(false)}>Atšaukti</Button>
-          <Button variant="contained" onClick={handleSeed}>Tęsti</Button>
+          <Button onClick={() => setSeedDialogOpen(false)}>{t("common.cancel")}</Button>
+          <Button variant="contained" onClick={handleSeed}>{t("pages.settings.demo.proceed")}</Button>
         </DialogActions>
       </Dialog>
     </Box>

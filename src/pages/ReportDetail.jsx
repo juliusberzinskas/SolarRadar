@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import {
@@ -34,19 +35,18 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 dayjs.locale("lt");
 
-// ── Statusų konfigūracija ─────────────────────────────────────────────────────
-const STATUS_CFG = {
-  completed:            { label: "Atlikta",              color: "success", icon: <CheckCircleIcon fontSize="small" /> },
-  not_completed:        { label: "Neatlikta",            color: "error",   icon: <CancelIcon fontSize="small" /> },
-  requires_maintenance: { label: "Reikalinga priežiūra", color: "warning", icon: <BuildIcon fontSize="small" /> },
-};
-
 function StatusChip({ value }) {
-  const cfg = STATUS_CFG[value] || { label: value || "—", color: "default", icon: null };
+  const { t } = useTranslation();
+  const STATUS_CFG = {
+    completed:            { key: "status.completed",            color: "success", icon: <CheckCircleIcon fontSize="small" /> },
+    not_completed:        { key: "status.not_completed",        color: "error",   icon: <CancelIcon fontSize="small" /> },
+    requires_maintenance: { key: "status.requires_maintenance", color: "warning", icon: <BuildIcon fontSize="small" /> },
+  };
+  const cfg = STATUS_CFG[value] || { key: value || "—", color: "default", icon: null };
   return (
     <Chip
       size="small"
-      label={cfg.label}
+      label={t(cfg.key, cfg.key)}
       color={cfg.color}
       icon={cfg.icon}
       variant="outlined"
@@ -67,8 +67,8 @@ function TabPanel({ value, index, children }) {
   return <Box sx={{ pt: 3 }}>{children}</Box>;
 }
 
-// ── Informacijos skirtukas ────────────────────────────────────────────────────
 function InfoTab({ report, reportId }) {
+  const { t } = useTranslation();
   const [adminNotes, setAdminNotes] = useState(report.adminNotes ?? "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -100,31 +100,29 @@ function InfoTab({ report, reportId }) {
 
   return (
     <Stack spacing={3}>
-      {/* Pagrindinė informacija */}
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
-        <Typography fontWeight={700} sx={{ mb: 1.5 }}>Ataskaitos informacija</Typography>
+        <Typography fontWeight={700} sx={{ mb: 1.5 }}>{t("pages.reportDetail.info.sectionTitle")}</Typography>
         <Divider sx={{ mb: 2 }} />
         <Stack>
-          <Row label="Technikas" value={report.technicianName} />
+          <Row label={t("pages.reportDetail.info.technician")} value={report.technicianName} />
           <Divider sx={{ opacity: 0.4 }} />
-          <Row label="Darbas" value={report.jobTitle} />
+          <Row label={t("pages.reportDetail.info.job")} value={report.jobTitle} />
           <Divider sx={{ opacity: 0.4 }} />
-          <Row label="Objektas" value={report.siteName} />
+          <Row label={t("pages.reportDetail.info.site")} value={report.siteName} />
           <Divider sx={{ opacity: 0.4 }} />
           <Stack direction="row" spacing={1} sx={{ py: 0.8 }}>
             <Typography variant="body2" color="text.secondary" sx={{ width: 180, flexShrink: 0, pt: 0.1 }}>
-              Statusas
+              {t("pages.reportDetail.info.status")}
             </Typography>
             <StatusChip value={report.status} />
           </Stack>
           <Divider sx={{ opacity: 0.4 }} />
-          <Row label="Pateikta" value={formatDate(report.submittedAt)} />
+          <Row label={t("pages.reportDetail.info.submitted")} value={formatDate(report.submittedAt)} />
         </Stack>
       </Paper>
 
-      {/* Techniko pastabos */}
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
-        <Typography fontWeight={700} sx={{ mb: 1.5 }}>Techniko pastabos</Typography>
+        <Typography fontWeight={700} sx={{ mb: 1.5 }}>{t("pages.reportDetail.techNotes.title")}</Typography>
         <Divider sx={{ mb: 2 }} />
         {report.notes ? (
           <Typography
@@ -143,16 +141,15 @@ function InfoTab({ report, reportId }) {
           </Typography>
         ) : (
           <Typography variant="body2" color="text.disabled" fontStyle="italic">
-            Techniko pastabų nėra.
+            {t("pages.reportDetail.techNotes.empty")}
           </Typography>
         )}
       </Paper>
 
-      {/* Admino pastabos */}
       <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
-        <Typography fontWeight={700} sx={{ mb: 0.5 }}>Admino pastabos</Typography>
+        <Typography fontWeight={700} sx={{ mb: 0.5 }}>{t("pages.reportDetail.adminNotes.title")}</Typography>
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
-          Tik vidiniam naudojimui — technikas jų nemato.
+          {t("pages.reportDetail.adminNotes.hint")}
         </Typography>
         <TextField
           value={adminNotes}
@@ -160,10 +157,10 @@ function InfoTab({ report, reportId }) {
           multiline
           minRows={3}
           fullWidth
-          placeholder="Rašyti vidines pastabas..."
+          placeholder={t("pages.reportDetail.adminNotes.placeholder")}
         />
         {saveError && <Alert severity="error" sx={{ mt: 1.5 }}>{saveError}</Alert>}
-        {saved && <Alert severity="success" sx={{ mt: 1.5 }}>Sėkmingai išsaugota.</Alert>}
+        {saved && <Alert severity="success" sx={{ mt: 1.5 }}>{t("common.savedOk")}</Alert>}
         <Box sx={{ mt: 2 }}>
           <Button
             variant="contained"
@@ -171,7 +168,7 @@ function InfoTab({ report, reportId }) {
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? "Saugoma..." : "Išsaugoti pastabas"}
+            {saving ? t("common.saving") : t("pages.reportDetail.adminNotes.save")}
           </Button>
         </Box>
       </Paper>
@@ -179,40 +176,44 @@ function InfoTab({ report, reportId }) {
   );
 }
 
-// ── Nuotraukų skirtukas ───────────────────────────────────────────────────────
 function PhotosTab({ report }) {
+  const { t } = useTranslation();
   const photoUrls = Array.isArray(report.photoUrls) ? report.photoUrls : [];
 
   if (photoUrls.length === 0) {
     return (
       <Paper variant="outlined" sx={{ p: 5, borderRadius: 2, textAlign: "center" }}>
         <Typography color="text.secondary" sx={{ mb: 0.5 }}>
-          Techniko nuotraukų nėra.
+          {t("pages.reportDetail.photos.none")}
         </Typography>
         <Typography variant="caption" color="text.disabled">
-          Kai techniko mobili app įkels nuotraukas, jos atsiras čia.
+          {t("pages.reportDetail.photos.hint")}
         </Typography>
       </Paper>
     );
   }
 
+  const countLabel = photoUrls.length === 1
+    ? `1 ${t("pages.reportDetail.photos.countSingular")}`
+    : `${photoUrls.length} ${t("pages.reportDetail.photos.countPlural")}`;
+
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        {photoUrls.length} {photoUrls.length === 1 ? "nuotrauka" : "nuotraukos"}
+        {countLabel}
       </Typography>
       <ImageList cols={3} gap={12}>
         {photoUrls.map((url, idx) => (
           <ImageListItem key={idx} sx={{ borderRadius: 1.5, overflow: "hidden" }}>
             <img
               src={url}
-              alt={`Nuotrauka ${idx + 1}`}
+              alt={t("pages.reportDetail.photos.label", { n: idx + 1 })}
               loading="lazy"
               style={{ height: 220, objectFit: "cover", width: "100%" }}
             />
             <ImageListItemBar
               actionIcon={
-                <Tooltip title="Atidaryti visą dydį">
+                <Tooltip title={t("pages.reportDetail.photos.open")}>
                   <IconButton
                     size="small"
                     sx={{ color: "rgba(255,255,255,0.85)" }}
@@ -225,7 +226,7 @@ function PhotosTab({ report }) {
                   </IconButton>
                 </Tooltip>
               }
-              title={`Nuotrauka ${idx + 1}`}
+              title={t("pages.reportDetail.photos.label", { n: idx + 1 })}
               sx={{ "& .MuiImageListItemBar-title": { fontSize: "0.72rem" } }}
             />
           </ImageListItem>
@@ -235,10 +236,10 @@ function PhotosTab({ report }) {
   );
 }
 
-// ── Puslapis ──────────────────────────────────────────────────────────────────
 export default function ReportDetail() {
   const { reportId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState(0);
@@ -251,7 +252,7 @@ export default function ReportDetail() {
         setLoading(false);
       },
       (err) => {
-        console.error("ReportDetail klaida:", err);
+        console.error("ReportDetail error:", err);
         setLoading(false);
       }
     );
@@ -271,9 +272,9 @@ export default function ReportDetail() {
     return (
       <Box>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/reports")}>
-          Ataskaitos
+          {t("pages.reportDetail.backBtn")}
         </Button>
-        <Alert severity="error" sx={{ mt: 2 }}>Ataskaita nerasta.</Alert>
+        <Alert severity="error" sx={{ mt: 2 }}>{t("pages.reportDetail.notFound")}</Alert>
       </Box>
     );
   }
@@ -282,18 +283,17 @@ export default function ReportDetail() {
 
   return (
     <Box>
-      {/* Antraštė */}
       <Stack direction="row" alignItems="center" gap={1.5} sx={{ mb: 2 }}>
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate("/reports")}
           sx={{ flexShrink: 0 }}
         >
-          Ataskaitos
+          {t("pages.reportDetail.backBtn")}
         </Button>
         <Box sx={{ flex: 1, overflow: "hidden" }}>
           <Typography variant="h5" fontWeight={800} noWrap>
-            {report.jobTitle || "Ataskaita"}
+            {report.jobTitle || t("pages.reportDetail.fallbackTitle")}
           </Typography>
           <Typography variant="caption" color="text.secondary">
             {report.technicianName || "—"} · {report.siteName || "—"} · {formatDate(report.submittedAt)}
@@ -302,18 +302,17 @@ export default function ReportDetail() {
         <StatusChip value={report.status} />
       </Stack>
 
-      {/* Skirtukai */}
       <Paper variant="outlined" sx={{ borderRadius: 2, mb: 3 }}>
         <Tabs
           value={tab}
           onChange={(_, v) => setTab(v)}
           sx={{ px: 2, borderBottom: 1, borderColor: "divider" }}
         >
-          <Tab label="Informacija" />
+          <Tab label={t("pages.reportDetail.tabs.info")} />
           <Tab
             label={
               <Stack direction="row" spacing={0.8} alignItems="center">
-                <span>Nuotraukos</span>
+                <span>{t("pages.reportDetail.tabs.photos")}</span>
                 {photoCount > 0 && (
                   <Chip size="small" label={photoCount} color="info" sx={{ height: 18, fontSize: "0.68rem" }} />
                 )}

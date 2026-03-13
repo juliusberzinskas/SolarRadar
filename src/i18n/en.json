@@ -18,19 +18,323 @@
     "cancel": "Cancel",
     "save": "Save",
     "add": "Add",
-    "close": "Close"
+    "close": "Close",
+    "all": "All",
+    "saving": "Saving...",
+    "saveChanges": "Save changes",
+    "savedOk": "Saved successfully.",
+    "delete": "Delete",
+    "download": "Download",
+    "uploading": "Uploading...",
+    "notAvailable": "—"
+  },
+
+  "status": {
+    "open": "Open",
+    "in_progress": "In progress",
+    "resolved": "Resolved",
+    "active": "Active",
+    "inactive": "Inactive",
+    "completed": "Completed",
+    "not_completed": "Not completed",
+    "requires_maintenance": "Requires maintenance"
+  },
+
+  "priority": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High"
+  },
+
+  "jobType": {
+    "inverter_fault": "Inverter fault",
+    "communication": "Communication issue",
+    "string_issue": "String issue",
+    "inspection": "Inspection",
+    "maintenance": "Maintenance"
   },
 
   "pages": {
-    "dashboard": { "title": "Dashboard" },
-    "sites": { "title": "Sites", "add": "Add site" },
-    "jobs": { "title": "Jobs", "create": "Create job" },
-    "members": { "title": "Members", "add": "Add member" },
+    "dashboard": {
+      "title": "Dashboard",
+      "subtitle": "System overview",
+      "kpi": {
+        "open": "Open jobs",
+        "inProgress": "In progress",
+        "resolved": "Resolved",
+        "activeSites": "Active sites"
+      },
+      "recentJobs": "Recent jobs",
+      "recentJobsCaption": "Last {{count}} added jobs",
+      "noJobs": "No jobs — first create demo data in Settings."
+    },
+
+    "sites": {
+      "title": "Sites",
+      "subtitle": "Site registration and location management",
+      "add": "Add site",
+      "col": {
+        "name": "Name",
+        "address": "Address",
+        "region": "Region",
+        "status": "Status",
+        "capacity": "kW",
+        "updated": "Updated"
+      },
+      "filter": {
+        "region": "Region",
+        "status": "Status"
+      },
+      "form": {
+        "name": "Site name",
+        "address": "Address",
+        "region": "Region",
+        "status": "Status",
+        "capacity": "Capacity (kW)",
+        "lat": "Latitude",
+        "lng": "Longitude"
+      },
+      "dialog": {
+        "add": "Add site"
+      }
+    },
+
+    "siteDetail": {
+      "backBtn": "Sites",
+      "notFound": "Site not found.",
+      "tabs": {
+        "info": "Information",
+        "map": "Map",
+        "mounting": "Mounting system",
+        "photos": "Photos"
+      },
+      "info": {
+        "name": "Site name",
+        "address": "Address",
+        "region": "Region",
+        "status": "Status",
+        "capacity": "Capacity (kW)",
+        "lat": "Latitude",
+        "lng": "Longitude"
+      },
+      "map": {
+        "noCoords": "Coordinates not entered yet. Enter latitude and longitude in the Information tab to see the map.",
+        "iframeTitle": "Site location"
+      },
+      "mounting": {
+        "panelType": "Panel type",
+        "panelTypePlaceholder": "e.g. Monocrystalline 400W",
+        "panelCount": "Panel count",
+        "inverterModel": "Inverter model",
+        "mountingType": "Mounting type",
+        "installDate": "Installation date"
+      },
+      "photos": {
+        "upload": "Upload photos",
+        "uploading": "Uploading... {{pct}}%",
+        "none": "No photos yet.",
+        "delete": "Delete",
+        "countSingular": "photo",
+        "countPlural": "photos"
+      }
+    },
+
+    "jobs": {
+      "title": "Jobs",
+      "subtitle": "Fault and maintenance job management",
+      "create": "Create job",
+      "col": {
+        "name": "Name",
+        "site": "Site",
+        "type": "Type",
+        "priority": "Priority",
+        "status": "Status",
+        "assigned": "Assigned",
+        "updated": "Updated"
+      },
+      "filter": {
+        "site": "Site",
+        "status": "Status",
+        "priority": "Priority",
+        "assignment": "Assignment",
+        "assigned": "Assigned",
+        "unassigned": "Unassigned"
+      },
+      "form": {
+        "title": "Title",
+        "site": "Site",
+        "noSite": "— None —",
+        "type": "Type",
+        "priority": "Priority",
+        "reqLevel": "Required level",
+        "description": "Description"
+      },
+      "dialog": {
+        "title": "Create job"
+      },
+      "creating": "Creating..."
+    },
+
+    "jobDetail": {
+      "backBtn": "Jobs",
+      "notFound": "Job not found.",
+      "tabs": {
+        "info": "Information",
+        "attachments": "Attachments"
+      },
+      "info": {
+        "sectionTitle": "Job information",
+        "name": "Name",
+        "site": "Site",
+        "type": "Type",
+        "priority": "Priority",
+        "reqLevel": "Required level",
+        "created": "Created",
+        "updated": "Updated",
+        "description": "Description"
+      },
+      "update": {
+        "sectionTitle": "Update job",
+        "status": "Status",
+        "assignedTech": "Assigned technician",
+        "unassigned": "— Unassigned —"
+      },
+      "attachments": {
+        "upload": "Upload files",
+        "uploading": "Uploading... {{pct}}%",
+        "none": "No attachments yet.",
+        "download": "Download",
+        "delete": "Delete",
+        "countSingular": "attachment",
+        "countPlural": "attachments"
+      }
+    },
+
+    "members": {
+      "title": "Members",
+      "subtitle": "Technician and administrator management",
+      "tabs": {
+        "technicians": "Technicians",
+        "admins": "Administrators"
+      },
+      "col": {
+        "id": "ID",
+        "name": "Name",
+        "email": "Email",
+        "level": "Level",
+        "status": "Status",
+        "hiredAt": "Hired",
+        "tenure": "Tenure (yrs)"
+      },
+      "filter": {
+        "active": "Active",
+        "inactive": "Inactive",
+        "minYears": "Min. years",
+        "anyYears": "Any",
+        "years1": "≥ 1 year",
+        "years2": "≥ 2 years",
+        "years5": "≥ 5 years"
+      },
+      "addTech": "Add technician",
+      "addAdmin": "Add administrator",
+      "dialog": {
+        "createTech": "New technician",
+        "editTech": "Edit technician",
+        "createAdmin": "New administrator",
+        "idLabel": "ID: "
+      },
+      "form": {
+        "name": "Full name",
+        "email": "Email",
+        "hiredAt": "Hire date",
+        "level": "Skill level",
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "creating": "Creating...",
+      "update": "Update",
+      "successCreate": "Account created. Password reset email sent to {{email}}"
+    },
+
+    "reports": {
+      "title": "Reports",
+      "subtitle": "Work reports submitted by technicians from mobile",
+      "col": {
+        "technician": "Technician",
+        "job": "Job",
+        "site": "Site",
+        "status": "Status",
+        "photos": "Photos",
+        "submitted": "Submitted"
+      },
+      "filter": {
+        "status": "Status",
+        "site": "Site"
+      },
+      "photosCount": "{{count}} photo(s)",
+      "empty": {
+        "title": "No reports yet",
+        "desc": "When a technician submits a report from the mobile app, it will appear here. Reports are stored in the Firestore"
+      }
+    },
+
+    "reportDetail": {
+      "backBtn": "Reports",
+      "notFound": "Report not found.",
+      "fallbackTitle": "Report",
+      "tabs": {
+        "info": "Information",
+        "photos": "Photos"
+      },
+      "info": {
+        "sectionTitle": "Report information",
+        "technician": "Technician",
+        "job": "Job",
+        "site": "Site",
+        "status": "Status",
+        "submitted": "Submitted"
+      },
+      "techNotes": {
+        "title": "Technician notes",
+        "empty": "No technician notes."
+      },
+      "adminNotes": {
+        "title": "Admin notes",
+        "hint": "Internal use only — the technician cannot see these.",
+        "placeholder": "Write internal notes...",
+        "save": "Save notes"
+      },
+      "photos": {
+        "none": "No technician photos.",
+        "hint": "When the technician's mobile app uploads photos, they will appear here.",
+        "open": "Open full size",
+        "label": "Photo {{n}}",
+        "countSingular": "photo",
+        "countPlural": "photos"
+      }
+    },
+
     "settings": {
       "title": "Settings",
-      "languageTitle": "Language",
-      "chooseLanguage": "Choose language",
-      "accountTitle": "Account"
+      "subtitle": "System settings (language, profile, etc.)",
+      "lang": {
+        "title": "Language",
+        "choose": "Choose language",
+        "note": "Selection is saved in the browser (localStorage) and will be applied the next time the page is opened."
+      },
+      "account": {
+        "title": "Account",
+        "desc": "Admin email and other profile info will be shown here later."
+      },
+      "demo": {
+        "title": "Demo data",
+        "desc": "Fills Firestore with demo data: 5 technicians, 4 sites, and 8 jobs. Can be run multiple times — overwrites existing records.",
+        "load": "Load demo data",
+        "loading": "Loading...",
+        "confirmTitle": "Load demo data?",
+        "confirmDesc": "This will write 5 technicians, 4 sites, and 8 jobs to Firestore. Existing records with the same IDs will be overwritten.",
+        "proceed": "Proceed"
+      }
     }
   }
 }
